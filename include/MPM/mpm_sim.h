@@ -11,6 +11,11 @@ class MPMSim {
  public:
   MPMSim() = default;
   virtual ~MPMSim();
+  enum TransferScheme {
+    FLIP_PIC_BLEND,
+    APIC
+  };
+  
 
   void mpm_demo();
 

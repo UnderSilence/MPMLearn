@@ -31,12 +31,11 @@ void MPMSim::mpm_demo() {
   int total_frame = 300;
   int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
 
-  MPM_INFO(
-      "Simulation start, Meta Informations:\n"
-      "\tframe_rate: {}\n"
-      "\tdt: {}\n"
-      "\tsteps_per_frame: {}\n",
-      frame_rate, dt, steps_per_frame);
+  MPM_INFO("Simulation start, Meta Informations:\n"
+           "\tframe_rate: {}\n"
+           "\tdt: {}\n"
+           "\tsteps_per_frame: {}\n",
+           frame_rate, dt, steps_per_frame);
 
   // export frame zero first
   export_result("../output/", 0);
@@ -66,7 +65,7 @@ void MPMSim::substep(float dt) {
   advection(dt);
 }
 
-bool MPMSim::export_result(const std::string& export_dir, int curr_frame) {
+bool MPMSim::export_result(const std::string &export_dir, int curr_frame) {
   // MPM_INFO("export frame_{}'s result.", curr_frame);
   std::vector<Vector3f> positions(sim_info.particle_size);
 
@@ -79,9 +78,9 @@ bool MPMSim::export_result(const std::string& export_dir, int curr_frame) {
 }
 
 bool MPMSim::mpm_initialize(float particle_density, float particle_mass,
-                            const std::string& model_path,
-                            const Vector3f& velocity, const Vector3f& gravity,
-                            const Vector3f& world_area, float h) {
+                            const std::string &model_path,
+                            const Vector3f &velocity, const Vector3f &gravity,
+                            const Vector3f &world_area, float h) {
   std::vector<Vector3f> positions;
   if (read_particles(model_path, positions)) {
     sim_info.particle_density = particle_density;
@@ -126,11 +125,10 @@ bool MPMSim::mpm_initialize(float particle_density, float particle_mass,
           grid_attrs[index].Xi = Vector3i(i, j, k);
         }
 
-    MPM_INFO(
-        "MPM simulation initialize:\n"
-        "\tparticle_size: {}\n"
-        "\tgrid_size: {}",
-        sim_info.particle_size, sim_info.grid_size);
+    MPM_INFO("MPM simulation initialize:\n"
+             "\tparticle_size: {}\n"
+             "\tgrid_size: {}",
+             sim_info.particle_size, sim_info.grid_size);
 
     return true;
   } else {
@@ -199,7 +197,7 @@ void MPMSim::transfer_P2G() {
       grid_attrs[iter].vel_in = Vector3f::Zero();
     }
   });
-}  // namespace mpm
+} // namespace mpm
 
 void MPMSim::add_gravity() {
   // MPM_PROFILE_FUNCTION();
@@ -211,9 +209,10 @@ void MPMSim::add_gravity() {
 }
 
 void MPMSim::update_grid_force(
-    std::function<Matrix3f(float, float, const Matrix3f&)> constitutive_model) {
+    std::function<Matrix3f(float, float, const Matrix3f &)>
+        constitutive_model) {
   // update grid forcing from particles F(deformation gradients)
-  
+
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
@@ -382,4 +381,4 @@ void MPMSim::solve_grid_boundary(int thickness) {
   }
 }
 
-}  // namespace mpm
+} // namespace mpm

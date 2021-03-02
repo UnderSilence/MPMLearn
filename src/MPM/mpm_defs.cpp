@@ -2,7 +2,7 @@
 
 namespace mpm {
 
-Matrix3f neohookean_piola(float E, float nu, const Matrix3f& F) {
+Matrix3f neohookean_piola(float E, float nu, const Matrix3f &F) {
   auto mu = 0.5f * E / (1.0f + nu);
   auto lambda = E * nu / (1.0f + nu) / (1.0f - 2.0f * nu);
   auto J = F.determinant();
@@ -17,17 +17,16 @@ void MPMLog::init() {
   s_logger->set_level(spdlog::level::level_enum::trace);
 }
 
-MPMProfiler::MPMProfiler(const std::string& tag) : tag(tag) {
+MPMProfiler::MPMProfiler(const std::string &tag) : tag(tag) {
   start = std::chrono::high_resolution_clock::now();
 }
 
 MPMProfiler::~MPMProfiler() {
   auto end = std::chrono::high_resolution_clock::now();
-
   MPM_TRACE("[profiler] {} cost {} ms", tag,
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
                     .count() /
                 1000.0f);
 }
 
-}  // namespace mpm
+} // namespace mpm
