@@ -14,7 +14,10 @@ public:
   virtual ~MPM_Simulator();
   enum TransferScheme { FLIP95, APIC };
 
-  void mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo);
+  TransferScheme ts;
+
+  void mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
+                const std::string &output_relative_path = "");
 
   void mpm_initialize(const Vector3f &gravity, const Vector3f &world_area,
                       float h);
@@ -26,11 +29,14 @@ public:
   void add_object(const std::vector<Vector3f> &positions,
                   MPM_Material *material);
 
+  void set_constitutive_model(const std::shared_ptr<MPM_CM> &cm);
+
   // void grid_initialize();
   // void particle_initialize();
   void substep(float dt);
   std::vector<Vector3f> get_positions() const;
   void clear_simulation();
+
   // bool export_result(const std::string &export_path, int curr_frame);
 
 private:
@@ -40,7 +46,7 @@ private:
   tbb::spin_mutex *grid_mutexs;
 
   // MPM simulation consititutive model
-  std::shared_ptr<MPM_CM> cm;
+  std::shared_ptr<MPM_CM> cm = std::make_shared<NeoHookean_Piola>();
 
   // storage the degree of freedoms
   tbb::concurrent_vector<int> active_nodes;

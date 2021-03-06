@@ -1,4 +1,5 @@
 
+#include <filesystem>
 #include <iostream>
 #include <memory>
 
@@ -41,9 +42,57 @@ int main() {
   mpm::MPMLog::init();
   // quatratic_test();
   auto sim = std::make_shared<mpm::MPM_Simulator>();
-  auto cm = std::make_shared<mpm::NeoHookean_Piola>();
 
-  sim->mpm_demo(cm);
+  auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
+  auto mtl_water = new MPM_Material(50.0f, 0.3f, 1.0f, 1.0f);
+
+  auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
+  auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
+  auto cm_fluid_1 = std::make_shared<mpm::QuatraticVolumePenalty>();
+
+  sim->clear_simulation();
+  Vector3f gravity{0.0f, -9.8f, 0.0f};
+  Vector3f area{1.0f, 1.0f, 1.0f};
+  Vector3f velocity{-0.5f, 0.5f, -0.3f};
+  float h = 0.02f;
+
+  sim->mpm_initialize(gravity, area, h);
+  sim->set_constitutive_model(cm_fluid_1);
+
+  std::vector<Vector3f> positions;
+  auto model_path = "../models/dense_cube.obj";
+
+  if (mpm::read_particles(model_path, positions)) {
+    mpm::MPM_INFO("read in particles from {} SUCCESS", model_path);
+    sim->add_object(positions, mtl_water);
+  } else {
+    return 0;
+  }
+
+  int frame_rate = 60;
+  float dt = 1e-3f;
+  int total_frame = 200;
+  int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
+
+  mpm::MPM_INFO("Simulation start, Meta Informations:\n"
+                "\tframe_rate: {}\n"
+                "\tdt: {}\n"
+                "\tsteps_per_frame: {}\n",
+                frame_rate, dt, steps_per_frame);
+
+  std::string output_dir("../output/quatratic_fluids_2/");
+  write_particles(output_dir + "0.bgeo", sim->get_positions());
+  for (int frame = 0; frame < total_frame;) {
+    {
+      mpm::MPM_PROFILE("frame#" + std::to_string(frame + 1));
+      for (int i = 0; i < steps_per_frame; i++) {
+        sim->substep(dt);
+      }
+    }
+    write_particles(output_dir + std::to_string(++frame) + ".bgeo",
+                    sim->get_positions());
+  }
+  // sim->mpm_demo(cm_fluid, "neohookean_fluids/");
 
   printf("mpm finished!\n");
   return 0;

@@ -42,7 +42,8 @@ void MPM_Simulator::clear_simulation() {
   sim_info = SimInfo();
 }
 
-void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo) {
+void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
+                             const std::string &output_relative_path) {
 
   clear_simulation();
   Vector3f gravity{0.0f, -9.8f, 0.0f};
@@ -51,20 +52,21 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo) {
 
   float h = 0.02f;
   auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
+  auto mtl_water = new MPM_Material(50.0f, 0.3f, 8e-6f, 1.0f);
 
   mpm_initialize(gravity, area, h);
   cm = cm_demo;
 
   std::vector<Vector3f> positions;
-  auto model_path = "../models/small_cube.obj";
+  auto model_path = "../models/dense_cube.obj";
 
   if (read_particles(model_path, positions)) {
     MPM_INFO("read in particles from {} SUCCESS", model_path);
-    add_object(positions, mtl_jello);
+    add_object(positions, mtl_water);
   }
 
   int frame_rate = 60;
-  float dt = 1e-4f;
+  float dt = 1e-3f;
   int total_frame = 300;
   int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
 
@@ -75,7 +77,8 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo) {
            frame_rate, dt, steps_per_frame);
 
   // export frame#0 first
-  write_particles("../output/0.bgeo", get_positions());
+  auto output_dir = "../output/" + output_relative_path;
+  write_particles(output_dir + "0.bgeo", get_positions());
   for (int frame = 0; frame < total_frame;) {
     {
       MPM_PROFILE("frame#" + std::to_string(frame + 1));
@@ -84,7 +87,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo) {
         substep(dt);
       }
     }
-    write_particles("../output/" + std::to_string(++frame) + ".bgeo",
+    write_particles(output_dir + std::to_string(++frame) + ".bgeo",
                     get_positions());
     // export_result("../output/", ++frame);
   }
@@ -210,6 +213,10 @@ void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
   sim_info.particle_size = new_size;
 }
 
+void MPM_Simulator::set_constitutive_model(const std::shared_ptr<MPM_CM> &cm) {
+  this->cm = cm;
+}
+
 void MPM_Simulator::prestep() {
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, sim_info.grid_size, [&](int i) {
@@ -294,7 +301,7 @@ void MPM_Simulator::update_grid_force() {
     auto &h = sim_info.h;
 
     // use constitutive_model (may cause problems in multi-threads condition)
-    Matrix3f piola = cm->calc_stress_tensor(particles[iter]);
+    Matrix3f piola = this->cm->calc_stress_tensor(particles[iter]);
 
     auto [base_node, wp, dwp] =
         quatratic_interpolation(particles[iter].pos_p / h);
@@ -360,11 +367,11 @@ void MPM_Simulator::update_F(float dt) {
 
     particles[iter].F = F + dt * weight * F;
 
-    // if (particles[iter].F.determinant() < 0) {
-    //   MPM_ERROR("particles[{}]'s determinat(F) is negative!\n{}", iter,
-    //             particles[iter].F);
-    //   assert(false);
-    // }
+    if (particles[iter].F.determinant() < 0) {
+      MPM_ERROR("particles[{}]'s determinat(F) is negative!\n{}", iter,
+                particles[iter].F);
+      assert(false);
+    }
   });
   // MPM_INFO("particles[0]'s F:\n{}", particles[0].F);
 }
