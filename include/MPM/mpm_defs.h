@@ -32,7 +32,7 @@ struct Particle {
   Matrix3f F; // deformation gradients
   Matrix3f Fe;
   Matrix3f Fp;
-  Matrix3f BP; // for APIC transfer
+  Matrix3f Bp; // for APIC transfer
 
   struct MPM_Material *material;
 };

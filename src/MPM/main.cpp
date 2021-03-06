@@ -8,6 +8,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace mpm;
+namespace fs = std::filesystem;
 
 void quatratic_test() {
   MPM_PROFILE_FUNCTION();
@@ -44,7 +45,7 @@ int main() {
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
   auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
-  auto mtl_water = new MPM_Material(50.0f, 0.3f, 1.0f, 1.0f);
+  auto mtl_water = new MPM_Material(500.0f, 0.3f, 0.1f, 1.0f);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
@@ -57,10 +58,10 @@ int main() {
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_fluid_1);
+  sim->set_constitutive_model(cm_solid);
 
   std::vector<Vector3f> positions;
-  auto model_path = "../models/dense_cube.obj";
+  auto model_path = "../models/small_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
     mpm::MPM_INFO("read in particles from {} SUCCESS", model_path);
@@ -70,7 +71,7 @@ int main() {
   }
 
   int frame_rate = 60;
-  float dt = 1e-3f;
+  float dt = 1e-4f;
   int total_frame = 200;
   int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
 
@@ -80,7 +81,9 @@ int main() {
                 "\tsteps_per_frame: {}\n",
                 frame_rate, dt, steps_per_frame);
 
-  std::string output_dir("../output/quatratic_fluids_2/");
+  std::string output_dir("../output/test/");
+
+
   write_particles(output_dir + "0.bgeo", sim->get_positions());
   for (int frame = 0; frame < total_frame;) {
     {

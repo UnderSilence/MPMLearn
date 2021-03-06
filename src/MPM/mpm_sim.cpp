@@ -181,7 +181,7 @@ void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
     particles[i].F = Matrix3f::Identity();
     particles[i].Fe = Matrix3f::Identity();
     particles[i].Fp = Matrix3f::Identity();
-    particles[i].BP = Matrix3f::Identity();
+    particles[i].Bp = Matrix3f::Identity();
     particles[i].material = material;
   }
 
@@ -207,7 +207,7 @@ void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
     particles[i].F = Matrix3f::Identity();
     particles[i].Fe = Matrix3f::Identity();
     particles[i].Fp = Matrix3f::Identity();
-    particles[i].BP = Matrix3f::Identity();
+    particles[i].Bp = Matrix3f::Identity();
     particles[i].material = material;
   }
   sim_info.particle_size = new_size;
@@ -229,17 +229,17 @@ void MPM_Simulator::prestep() {
 }
 
 void MPM_Simulator::transfer_P2G() {
-  // Matrix3f wp, dwp;
 
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     // convert particles position to grid space by divide h
-    auto [base_node, wp, dwp] =
-        quatratic_interpolation(particles[iter].pos_p / sim_info.h);
+    // particle position in grid space
+    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
+    auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
 
-    auto &particle = particles[iter];
-    auto &mass_p = particle.material->mass;
+    auto particle = particles[iter];
+    auto mass_p = particle.material->mass;
 
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
@@ -256,13 +256,20 @@ void MPM_Simulator::transfer_P2G() {
           float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           // MPM_INFO("display wijk={}*{}*{}={}, wp:\n{}", wp(i, 0), wp(j, 1),
           //          wp(k, 2), wijk, wp);
+          Vector3f plus = Vector3f::Zero();
+          if (transfer_scheme == TransferScheme::APIC) {
+            plus = 4 * particles[iter].Bp *
+                   (gs_particle_pos - curr_node.cast<float>());
+          }
+
           {
             // critical section
             tbb::spin_mutex::scoped_lock lock(grid_mutexs[index]);
 
-            grid_attrs[index].mass_i += wijk * mass_p;
             // accumulate momentum at time n
-            grid_attrs[index].vel_in += wijk * mass_p * particles[iter].vel_p;
+            grid_attrs[index].vel_in +=
+                wijk * mass_p * (particles[iter].vel_p + plus);
+            grid_attrs[index].mass_i += wijk * mass_p;
           }
         }
   });
@@ -296,12 +303,12 @@ void MPM_Simulator::update_grid_force() {
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
-    auto &F = particles[iter].F;
-    auto &vol_p = particles[iter].material->volume;
-    auto &h = sim_info.h;
+    auto F = particles[iter].F;
+    auto vol_p = particles[iter].material->volume;
+    auto h = sim_info.h;
 
     // use constitutive_model (may cause problems in multi-threads condition)
-    Matrix3f piola = this->cm->calc_stress_tensor(particles[iter]);
+    Matrix3f piola = cm->calc_stress_tensor(particles[iter]);
 
     auto [base_node, wp, dwp] =
         quatratic_interpolation(particles[iter].pos_p / h);
@@ -379,11 +386,13 @@ void MPM_Simulator::update_F(float dt) {
 void MPM_Simulator::transfer_G2P() {
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
-    auto [base_node, wp, dwp] =
-        quatratic_interpolation(particles[iter].pos_p / sim_info.h);
+    // particle position in grid space
+    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
+    auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
 
     Vector3f v_pic = Vector3f::Zero();
     Vector3f v_flip = particles[iter].vel_p;
+    particles[iter].Bp = Matrix3f::Zero();
 
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
@@ -397,10 +406,22 @@ void MPM_Simulator::transfer_G2P() {
 
           v_pic += wijk * grid_attrs[index].vel_i;
           v_flip += wijk * (grid_attrs[index].vel_i - grid_attrs[index].vel_in);
+          particles[iter].Bp +=
+              wijk * grid_attrs[index].vel_i *
+              (gs_particle_pos - curr_node.cast<float>()).transpose();
         }
 
-    particles[iter].vel_p =
-        (1 - sim_info.alpha) * v_pic + sim_info.alpha * v_flip;
+    switch (transfer_scheme) {
+    case TransferScheme::APIC:
+      particles[iter].vel_p = v_pic;
+      break;
+    case TransferScheme::FLIP99:
+      sim_info.alpha = 0.99f;
+    default:
+    case TransferScheme::FLIP95:
+      particles[iter].vel_p =
+          (1 - sim_info.alpha) * v_pic + sim_info.alpha * v_flip;
+    }
   });
 }
 

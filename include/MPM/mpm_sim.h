@@ -12,9 +12,7 @@ class MPM_Simulator {
 public:
   MPM_Simulator();
   virtual ~MPM_Simulator();
-  enum TransferScheme { FLIP95, APIC };
-
-  TransferScheme ts;
+  enum TransferScheme { FLIP99, FLIP95, APIC };
 
   void mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
                 const std::string &output_relative_path = "");
@@ -43,6 +41,8 @@ private:
   SimInfo sim_info;
   Particle *particles;
   GridAttr *grid_attrs;
+  TransferScheme transfer_scheme = TransferScheme::APIC;
+
   tbb::spin_mutex *grid_mutexs;
 
   // MPM simulation consititutive model

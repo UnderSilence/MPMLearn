@@ -9,8 +9,8 @@ MPM_Material::MPM_Material(float E, float nu, float mass, float density)
 }
 
 Matrix3f NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
   auto piola = m->mu * (F - F.transpose().inverse()) +
                m->lambda * log(J) * F.transpose().inverse();
@@ -18,8 +18,8 @@ Matrix3f NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
 }
 
 float NeoHookean_Piola::calc_psi(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
   auto log_J = log(J);
 
@@ -29,32 +29,32 @@ float NeoHookean_Piola::calc_psi(const Particle &particle) {
 }
 
 Matrix3f QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
 
   return 0.5f * m->lambda * 2 * (J - 1) * J * F.inverse().transpose();
 }
 
 float QuatraticVolumePenalty::calc_psi(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
 
   return 0.5f * m->lambda * std::pow(J - 1, 2);
 }
 
 Matrix3f NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
   auto piola = m->lambda * log(J) * F.transpose().inverse();
   return piola;
 }
 
 float NeoHookean_Fluid::calc_psi(const Particle &particle) {
-  auto &m = particle.material;
-  auto &F = particle.F;
+  auto m = particle.material;
+  auto F = particle.F;
   auto J = F.determinant();
   auto log_J = log(J);
 
