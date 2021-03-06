@@ -40,8 +40,10 @@ int main() {
   // initialize logger
   mpm::MPMLog::init();
   // quatratic_test();
-  auto sim = make_shared<mpm::MPMSim>();
-  sim->mpm_demo();
+  auto sim = std::make_shared<mpm::MPM_Simulator>();
+  auto cm = std::make_shared<mpm::NeoHookean_Piola>();
+
+  sim->mpm_demo(cm);
 
   printf("mpm finished!\n");
   return 0;

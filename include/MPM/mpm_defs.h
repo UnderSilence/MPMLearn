@@ -27,88 +27,38 @@ struct GridAttr {
 };
 
 struct Particle {
-  float mass_p;
-  float volume_p;
   Vector3f pos_p;
   Vector3f vel_p;
-  Matrix3f F;  // deformation gradients
+  Matrix3f F; // deformation gradients
+  Matrix3f Fe;
+  Matrix3f Fp;
+  Matrix3f BP; // for APIC transfer
+
+  struct MPM_Material *material;
 };
 
 struct SimInfo {
-  int particle_size;
-  int grid_size;
-  int grid_w;
-  int grid_h;
-  int grid_l;
+  int particle_size = 0;
+  int grid_size = 0;
+  int grid_w = 0;
+  int grid_h = 0;
+  int grid_l = 0;
 
   // simulation factors
-  float E = 50.0f;      // Young's modules
-  float nu = 0.3f;      // Possion ratio
-  float alpha = 0.95f;  // 0.95 flip/pic
+  // float E = 50.0f;     // Young's modules
+  // float nu = 0.3f;     // Possion ratio
+  float alpha = 0.95f; // 0.95 flip/pic
 
-  float particle_density;
-  float particle_mass;
-  std::string model_path;
-  Vector3f gravity;
-  Vector3f world_area;
-  float h;
+  // float particle_density;
+  // float particle_mass;
+  // std::string model_path;
+
+  Vector3f gravity = Vector3f::Zero();
+  Vector3f world_area = Vector3f::Zero();
+  float h = 0.0f;
+  unsigned int curr_step = 0;
 };
 
-Matrix3f neohookean_piola(float E, float nu, const Matrix3f& F);
+// Matrix3f neohookean_piola(float E, float nu, const Matrix3f &F);
 
-// define logger
-class MPMLog {
- public:
-  static void init();
-  MPMLog() = default;
-  virtual ~MPMLog() = default;
-
-  inline static const std::shared_ptr<spdlog::logger>& get_logger() {
-    return s_logger;
-  }
-
- private:
-  static std::shared_ptr<spdlog::logger> s_logger;
-};
-
-class MPMProfiler {
- public:
-  MPMProfiler(const std::string& tag);
-  virtual ~MPMProfiler();
-
- private:
-  std::string tag;
-  std::chrono::high_resolution_clock::time_point start;
-};
-
-#ifndef DISTRIBUTE
-// Client log macros
-#define MPM_FATAL(...) MPMLog::get_logger()->fatal(__VA_ARGS__)
-#define MPM_ERROR(...) MPMLog::get_logger()->error(__VA_ARGS__)
-#define MPM_WARN(...) MPMLog::get_logger()->warn(__VA_ARGS__)
-#define MPM_INFO(...) MPMLog::get_logger()->info(__VA_ARGS__)
-#define MPM_TRACE(...) MPMLog::get_logger()->trace(__VA_ARGS__)
-
-#define MPM_ASSERT(...) assert(__VA_ARGS__)
-
-#define MPM_FUNCTION_SIG __func__
-#define MPM_PROFILE(tag) MPMProfiler timer##__LINE__(tag)
-#define MPM_PROFILE_FUNCTION() MPM_PROFILE(MPM_FUNCTION_SIG)
-
-#else
-
-#define MPM_FATAL(...)
-#define MPM_ERROR(...)
-#define MPM_WARN(...)
-#define MPM_INFO(...)
-#define MPM_TRACE(...)
-
-#define MPM_ASSERT(...)
-
-#define MPM_FUNCTION_SIG
-#define MPM_PROFILE(tag)
-#define MPM_PROFILE_FUNCTION()
-
-#endif
-
-}  // namespace mpm
+} // namespace mpm

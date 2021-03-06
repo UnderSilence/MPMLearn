@@ -1,5 +1,6 @@
 #pragma once
 #include "MPM/mpm_defs.h"
+#include "MPM/mpm_mtl.h"
 #include "tbb/concurrent_vector.h"
 #include "tbb/spin_mutex.h"
 
@@ -7,32 +8,39 @@ using namespace Eigen;
 namespace mpm {
 
 // neohookean model
-class MPMSim {
- public:
-  MPMSim() = default;
-  virtual ~MPMSim();
-  enum TransferScheme {
-    FLIP_PIC_BLEND,
-    APIC
-  };
-  
+class MPM_Simulator {
+public:
+  MPM_Simulator();
+  virtual ~MPM_Simulator();
+  enum TransferScheme { FLIP95, APIC };
 
-  void mpm_demo();
+  void mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo);
 
-  bool mpm_initialize(float particle_density, float particle_mass,
-                      const std::string& model_path, const Vector3f& velocity,
-                      const Vector3f& gravity, const Vector3f& world_area,
+  void mpm_initialize(const Vector3f &gravity, const Vector3f &world_area,
                       float h);
+
+  void add_object(const std::vector<Vector3f> &positions,
+                  const std::vector<Vector3f> &velocities,
+                  MPM_Material *material);
+
+  void add_object(const std::vector<Vector3f> &positions,
+                  MPM_Material *material);
+
   // void grid_initialize();
   // void particle_initialize();
   void substep(float dt);
-  bool export_result(const std::string& export_path, int curr_frame);
+  std::vector<Vector3f> get_positions() const;
+  void clear_simulation();
+  // bool export_result(const std::string &export_path, int curr_frame);
 
- private:
+private:
   SimInfo sim_info;
-  Particle* particles;
-  GridAttr* grid_attrs;
-  tbb::spin_mutex* grid_mutexs;
+  Particle *particles;
+  GridAttr *grid_attrs;
+  tbb::spin_mutex *grid_mutexs;
+
+  // MPM simulation consititutive model
+  std::shared_ptr<MPM_CM> cm;
 
   // storage the degree of freedoms
   tbb::concurrent_vector<int> active_nodes;
@@ -43,8 +51,7 @@ class MPMSim {
   void add_gravity();
   // TODO: support variety
   //  E : float, nu : float, F : Matrix3f
-  void update_grid_force(std::function<Matrix3f(float, float, const Matrix3f&)>
-                             constitutive_model);
+  void update_grid_force();
   void update_grid_velocity(float dt);
   void update_F(float dt);
   void transfer_G2P();
@@ -55,4 +62,4 @@ class MPMSim {
   // void solve_grid_collision();
   void solve_grid_boundary(int thickness = 2);
 };
-}  // namespace mpm
+} // namespace mpm

@@ -1,10 +1,11 @@
+#include "MPM/mpm_utils.h"
 #include "MPM/mpm_defs.h"
 #include "Partio.h"
 
 namespace mpm {
 
-bool read_particles(const std::string& model_path,
-                    std::vector<Vector3f>& positions) {
+bool read_particles(const std::string &model_path,
+                    std::vector<Vector3f> &positions) {
   std::ifstream input(model_path);
   std::string line;
   Vector3f pos;
@@ -24,9 +25,9 @@ bool read_particles(const std::string& model_path,
   }
 }
 
-bool write_particles(const std::string& write_path,
-                     std::vector<Vector3f>& positions) {
-  Partio::ParticlesDataMutable* parts = Partio::create();
+bool write_particles(const std::string &write_path,
+                     const std::vector<Vector3f> &positions) {
+  Partio::ParticlesDataMutable *parts = Partio::create();
   Partio::ParticleAttribute pos_attr =
       parts->addAttribute("position", Partio::VECTOR, 3);
   Partio::ParticleAttribute index_attr =
@@ -34,8 +35,8 @@ bool write_particles(const std::string& write_path,
 
   for (auto i = 0; i < positions.size(); i++) {
     int idx = parts->addParticle();
-    auto* p = parts->dataWrite<Vector3f>(pos_attr, idx);
-    auto* index = parts->dataWrite<int>(index_attr, idx);
+    auto *p = parts->dataWrite<Vector3f>(pos_attr, idx);
+    auto *index = parts->dataWrite<int>(index_attr, idx);
 
     *p = positions[i];
     *index = i;
@@ -65,8 +66,8 @@ inline Vector3f calc_quadratic_grad(float o, float x) {
 }
 
 // under gridspace coords
-std::tuple<Vector3i, Matrix3f, Matrix3f> quatratic_interpolation(
-    const Vector3f& particle_pos) {
+std::tuple<Vector3i, Matrix3f, Matrix3f>
+quatratic_interpolation(const Vector3f &particle_pos) {
   Vector3i base_node = floor(particle_pos.array() - 0.5f).cast<int>();
   Matrix3f wp, dwp;
 
@@ -81,4 +82,24 @@ std::tuple<Vector3i, Matrix3f, Matrix3f> quatratic_interpolation(
 
   return {base_node, wp, dwp};
 }
-}  // namespace mpm
+
+std::shared_ptr<spdlog::logger> MPMLog::s_logger;
+void MPMLog::init() {
+  s_logger = spdlog::stdout_color_mt("MPM");
+  s_logger->set_pattern("[%^%l%$][%n] %v");
+  s_logger->set_level(spdlog::level::level_enum::trace);
+}
+
+MPMProfiler::MPMProfiler(const std::string &tag) : tag(tag) {
+  start = std::chrono::high_resolution_clock::now();
+}
+
+MPMProfiler::~MPMProfiler() {
+  auto end = std::chrono::high_resolution_clock::now();
+  MPM_TRACE("[profiler] {} cost {} ms", tag,
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                    .count() /
+                1000.0f);
+}
+
+} // namespace mpm

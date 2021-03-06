@@ -14,7 +14,7 @@ endif()
 
 # add_definitions(-DDISTRIBUTE)
 # message("cmake flag ${CMAKE_CXX_FLAGS}") 
-add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp)
+add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp mpm_mtl.cpp)
 
 find_package(Eigen3 CONFIG REQUIRED)
 target_link_libraries(MPM PRIVATE Eigen3::Eigen)
