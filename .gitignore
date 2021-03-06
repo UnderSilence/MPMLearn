@@ -17,3 +17,5 @@ _deps
 build
 bin
 output/*
+proj/*
+
