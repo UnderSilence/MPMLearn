@@ -12,6 +12,11 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
 endif()
 
+if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    add_definitions(-DTBB_USE_DEBUG)
+    add_definitions(-DTBB_USE_THREADING_TOOLS)
+endif()
+
 # add_definitions(-DDISTRIBUTE)
 # message("cmake flag ${CMAKE_CXX_FLAGS}") 
 add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp mpm_mtl.cpp)

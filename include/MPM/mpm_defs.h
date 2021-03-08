@@ -34,6 +34,9 @@ struct Particle {
   Matrix3f Fp;
   Matrix3f Bp; // for APIC transfer
 
+  float cp;    // fluids ratio
+  Matrix3f Dp; // inertia tensor
+
   struct MPM_Material *material;
 };
 

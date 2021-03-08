@@ -3,6 +3,17 @@
 
 namespace mpm {
 
+template <class Tensor> std::string make_string(const Tensor v) {
+  std::string output;
+  for (int i = 0; i < v.rows(); i++) {
+    for (int j = 0; j < v.cols(); j++) {
+      output.append(std::to_string(v(i, j)) +
+                    std::to_string(",]"[j + 1 == v.cols()]));
+    }
+    output.append("\n");
+  }
+}
+
 bool read_particles(const std::string &model_path,
                     std::vector<Vector3f> &positions);
 bool write_particles(const std::string &write_path,
@@ -40,7 +51,7 @@ private:
   std::chrono::high_resolution_clock::time_point start;
 };
 
-#ifndef DISTRIBUTE
+#ifndef DIST_VERSION
 // Client log macros
 #define MPM_FATAL(...) MPMLog::get_logger()->fatal(__VA_ARGS__)
 #define MPM_ERROR(...) MPMLog::get_logger()->error(__VA_ARGS__)
@@ -48,7 +59,13 @@ private:
 #define MPM_INFO(...) MPMLog::get_logger()->info(__VA_ARGS__)
 #define MPM_TRACE(...) MPMLog::get_logger()->trace(__VA_ARGS__)
 
-#define MPM_ASSERT(...) assert(__VA_ARGS__)
+#define MPM_ASSERT(condition, statement)                                       \
+  do {                                                                         \
+    if (!(condition)) {                                                        \
+      mpm::MPM_ERROR(statement);                                               \
+      assert(condition);                                                       \
+    }                                                                          \
+  } while (false)
 
 #define MPM_FUNCTION_SIG __func__
 #define MPM_PROFILE(tag) MPMProfiler timer##__LINE__(tag)

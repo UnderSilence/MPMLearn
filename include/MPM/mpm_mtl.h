@@ -5,13 +5,14 @@
 namespace mpm {
 struct MPM_Material {
   // lame params
-  float E;
-  float nu;
+  float E;  // young's modulus
+  float nu; // possion ratio
   float mass;
   float density;
 
   float lambda;
   float mu;
+  float K; // bulk modulus
   float volume;
   MPM_Material(float E, float nu, float mass, float density);
 };
@@ -35,6 +36,11 @@ class QuatraticVolumePenalty : public MPM_CM {
 };
 
 class NeoHookean_Fluid : public MPM_CM {
+  virtual Matrix3f calc_stress_tensor(const Particle &particle);
+  virtual float calc_psi(const Particle &particle);
+};
+
+class CDMPM_Fluid : public MPM_CM {
   virtual Matrix3f calc_stress_tensor(const Particle &particle);
   virtual float calc_psi(const Particle &particle);
 };

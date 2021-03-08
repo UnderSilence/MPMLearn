@@ -18,4 +18,5 @@ build
 bin
 output/*
 proj/*
+project/*
 

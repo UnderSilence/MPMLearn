@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <tbb/task_scheduler_init.h>
 
 #include "MPM/mpm_sim.h"
 #include "MPM/mpm_utils.h"
@@ -39,33 +40,38 @@ void quatratic_test() {
 }
 
 int main() {
+  // tbb::task_scheduler_init init(1);
   // initialize logger
   mpm::MPMLog::init();
   // quatratic_test();
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
   auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
-  auto mtl_water = new MPM_Material(500.0f, 0.3f, 0.1f, 1.0f);
+  auto mtl_water = new MPM_Material(500.0f, 0.40f, 0.001f, 1.0f);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
   auto cm_fluid_1 = std::make_shared<mpm::QuatraticVolumePenalty>();
+  auto cm_fluid_2 = std::make_shared<mpm::CDMPM_Fluid>();
 
   sim->clear_simulation();
   Vector3f gravity{0.0f, -9.8f, 0.0f};
   Vector3f area{1.0f, 1.0f, 1.0f};
-  Vector3f velocity{-0.5f, 0.5f, -0.3f};
+  Vector3f velocity{-2.5f, 0.5f, -0.3f};
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_solid);
+  sim->set_constitutive_model(cm_fluid_2);
+  sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
   std::vector<Vector3f> positions;
-  auto model_path = "../models/small_cube.obj";
+  auto model_path = "../models/dense_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
     mpm::MPM_INFO("read in particles from {} SUCCESS", model_path);
-    sim->add_object(positions, mtl_water);
+    sim->add_object(positions,
+                    std::vector<Vector3f>(positions.size(), velocity),
+                    mtl_water);
   } else {
     return 0;
   }
@@ -83,9 +89,15 @@ int main() {
 
   std::string output_dir("../output/test/");
 
-
   write_particles(output_dir + "0.bgeo", sim->get_positions());
   for (int frame = 0; frame < total_frame;) {
+    // add another jello
+    if (frame && frame % 50 == 0) {
+      sim->add_object(positions,
+                      std::vector<Vector3f>(positions.size(), velocity),
+                      mtl_water);
+    }
+
     {
       mpm::MPM_PROFILE("frame#" + std::to_string(frame + 1));
       for (int i = 0; i < steps_per_frame; i++) {

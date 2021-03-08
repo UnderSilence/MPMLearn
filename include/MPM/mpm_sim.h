@@ -29,23 +29,23 @@ public:
 
   void set_constitutive_model(const std::shared_ptr<MPM_CM> &cm);
 
+  void set_transfer_scheme(TransferScheme ts);
   // void grid_initialize();
   // void particle_initialize();
   void substep(float dt);
   std::vector<Vector3f> get_positions() const;
   void clear_simulation();
-
   // bool export_result(const std::string &export_path, int curr_frame);
 
 private:
   SimInfo sim_info;
   Particle *particles;
   GridAttr *grid_attrs;
-  TransferScheme transfer_scheme = TransferScheme::APIC;
 
   tbb::spin_mutex *grid_mutexs;
 
   // MPM simulation consititutive model
+  TransferScheme transfer_scheme = TransferScheme::APIC;
   std::shared_ptr<MPM_CM> cm = std::make_shared<NeoHookean_Piola>();
 
   // storage the degree of freedoms
