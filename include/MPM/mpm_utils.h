@@ -59,10 +59,10 @@ private:
 #define MPM_INFO(...) MPMLog::get_logger()->info(__VA_ARGS__)
 #define MPM_TRACE(...) MPMLog::get_logger()->trace(__VA_ARGS__)
 
-#define MPM_ASSERT(condition, statement)                                       \
+#define MPM_ASSERT(condition, ...)                                             \
   do {                                                                         \
     if (!(condition)) {                                                        \
-      mpm::MPM_ERROR(statement);                                               \
+      mpm::MPM_ERROR(__VA_ARGS__);                                             \
       assert(condition);                                                       \
     }                                                                          \
   } while (false)
