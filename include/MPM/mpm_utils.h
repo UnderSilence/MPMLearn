@@ -7,11 +7,11 @@ template <class Tensor> std::string make_string(const Tensor v) {
   std::string output;
   for (int i = 0; i < v.rows(); i++) {
     for (int j = 0; j < v.cols(); j++) {
-      output.append(std::to_string(v(i, j)) +
-                    std::to_string(",]"[j + 1 == v.cols()]));
+      output.append(std::to_string(v(i, j)) + " ");
     }
     output.append("\n");
   }
+  return output;
 }
 
 bool read_particles(const std::string &model_path,
