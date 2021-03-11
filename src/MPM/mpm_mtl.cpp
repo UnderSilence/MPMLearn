@@ -70,7 +70,10 @@ Matrix3f CDMPM_Fluid::calc_stress_tensor(const Particle &particle) {
   auto J = F.determinant();
   // d(psi)/d(J) * d(J)/d(F) =
   // 0.5 * K (J - 1 / J) * J * F^{-T}
-  auto piola = 0.5f * m->K * (J - 1 / J) * J * F.inverse().transpose();
+  // if (J >= 1) {
+  //   return Matrix3f::Zero();
+  // }
+  auto piola = 0.5f * m->K * (J - 1 / J) * J * Matrix3f::Identity();
   return piola;
 }
 

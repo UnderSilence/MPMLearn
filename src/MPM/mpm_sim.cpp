@@ -231,7 +231,7 @@ void MPM_Simulator::set_transfer_scheme(TransferScheme ts) {
   if (ts == TransferScheme::FLIP95) {
     sim_info.alpha = 0.95f;
   } else if (ts == TransferScheme::FLIP99) {
-    sim_info.alpha = 0.99;
+    sim_info.alpha = 0.99f;
   }
 }
 
@@ -295,7 +295,9 @@ void MPM_Simulator::transfer_P2G() {
 
           // check if particles run out of boundaries
           MPM_ASSERT(0 <= index && index < sim_info.grid_size,
-                     " PARTICLE OUT OF GRID at Transfer_P2G");
+                     " PARTICLE OUT OF GRID at Transfer_P2G\n\tposition: "
+                     "{}\tvelocity: {}",
+                     particle.pos_p.transpose(), particle.vel_p.transpose());
 
           float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           Vector3f plus = Vector3f::Zero();
@@ -371,8 +373,7 @@ void MPM_Simulator::update_grid_force() {
             // critical section
             tbb::spin_mutex::scoped_lock lock(grid_mutexs[index]);
 
-            grid_attrs[index].force_i -=
-                vol_p * (piola * F.transpose()) * grad_wip;
+            grid_attrs[index].force_i -= vol_p * (piola)*grad_wip;
           }
         }
   });
@@ -418,11 +419,13 @@ void MPM_Simulator::update_F(float dt) {
 
     particles[iter].F = F + dt * weight * F;
 
-    if (particles[iter].F.determinant() < 0) {
-      MPM_ERROR("particles[{}]'s determinat(F) is negative!\n{}", iter,
-                particles[iter].F);
-      assert(false);
-    }
+    MPM_ASSERT(
+        particles[iter].F.determinant() > 0,
+        "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
+        "original F:\n{}, determinant: {}\n"
+        "weight:\n {}, determinant: {}",
+        iter, particles[iter].F, particles[iter].F.determinant(), F,
+        F.determinant(), weight, weight.determinant());
   });
   // MPM_INFO("particles[0]'s F:\n{}", particles[0].F);
 }

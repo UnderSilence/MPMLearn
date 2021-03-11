@@ -46,8 +46,8 @@ int main() {
   // quatratic_test();
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
-  auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
-  auto mtl_water = new MPM_Material(500.0f, 0.40f, 0.001f, 1.0f);
+  auto mtl_jello = MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
+  auto mtl_water = MPM_Material(50.0f, 0.40f, 0.001f, 1.0f);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
@@ -57,7 +57,8 @@ int main() {
   sim->clear_simulation();
   Vector3f gravity{0.0f, -9.8f, 0.0f};
   Vector3f area{1.0f, 1.0f, 1.0f};
-  Vector3f velocity{-2.5f, 0.5f, -0.3f};
+  // Vector3f velocity{-2.5f, 0.5f, -0.3f};
+  Vector3f velocity{0.0f, 0.0f, 0.0f};
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
@@ -71,7 +72,7 @@ int main() {
     mpm::MPM_INFO("read in particles from {} SUCCESS", model_path);
     sim->add_object(positions,
                     std::vector<Vector3f>(positions.size(), velocity),
-                    mtl_water);
+                    &mtl_water);
   } else {
     return 0;
   }
@@ -84,19 +85,20 @@ int main() {
   mpm::MPM_INFO("Simulation start, Meta Informations:\n"
                 "\tframe_rate: {}\n"
                 "\tdt: {}\n"
-                "\tsteps_per_frame: {}\n",
-                frame_rate, dt, steps_per_frame);
+                "\tsteps_per_frame: {}\n"
+                "\tparticle_size: {}",
+                frame_rate, dt, steps_per_frame, positions.size());
 
   std::string output_dir("../output/test/");
 
   write_particles(output_dir + "0.bgeo", sim->get_positions());
   for (int frame = 0; frame < total_frame;) {
     // add another jello
-    if (frame && frame % 50 == 0) {
-      sim->add_object(positions,
-                      std::vector<Vector3f>(positions.size(), velocity),
-                      mtl_water);
-    }
+    // if (frame && frame % 50 == 0) {
+    //   sim->add_object(positions,
+    //                   std::vector<Vector3f>(positions.size(), velocity),
+    //                   &mtl_water);
+    // }
 
     {
       mpm::MPM_PROFILE("frame#" + std::to_string(frame + 1));
