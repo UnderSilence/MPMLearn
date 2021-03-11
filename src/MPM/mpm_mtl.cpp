@@ -1,12 +1,18 @@
 #include "MPM/mpm_mtl.h"
 
 namespace mpm {
+
 MPM_Material::MPM_Material(float E, float nu, float mass, float density)
     : E(E), nu(nu), mass(mass), density(density) {
   mu = 0.5f * E / (1 + nu);
   lambda = E * nu / (1 + nu) / (1 - 2 * nu);
   volume = mass / density;
   K = E / (1 - 2 * nu) / 3.0f;
+}
+
+std::tuple<Matrix3f, Matrix3f>
+MPM_CM::calc_mixed_stress_tensor(const Particle &particle) {
+  return {calc_stress_tensor(particle), Matrix3f::Zero()};
 }
 
 Matrix3f NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
@@ -65,16 +71,7 @@ float NeoHookean_Fluid::calc_psi(const Particle &particle) {
 }
 
 Matrix3f CDMPM_Fluid::calc_stress_tensor(const Particle &particle) {
-  auto m = particle.material;
-  auto F = particle.F;
-  auto J = F.determinant();
-  // d(psi)/d(J) * d(J)/d(F) =
-  // 0.5 * K (J - 1 / J) * J * F^{-T}
-  // if (J >= 1) {
-  //   return Matrix3f::Zero();
-  // }
-  auto piola = 0.5f * m->K * (J - 1 / J) * J * Matrix3f::Identity();
-  return piola;
+  throw std::logic_error("function not implement yet");
 }
 
 float CDMPM_Fluid::calc_psi(const Particle &particle) {
@@ -85,6 +82,20 @@ float CDMPM_Fluid::calc_psi(const Particle &particle) {
   // 0.5 * K ( 0.5 * (J^2 - 1) - Log(J))
   auto psi = 0.5f * m->K * (0.5f * (J * J - 1) - log_J);
   return psi;
+}
+
+std::tuple<Matrix3f, Matrix3f>
+CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
+  auto m = particle.material;
+  auto F = particle.F;
+  auto J = F.determinant();
+  // d(psi)/d(J) * d(J)/d(F) =
+  // 0.5 * K (J - 1 / J) * J * F^{-T}
+  // if (J >= 1) {
+  //   return Matrix3f::Zero();
+  // }
+  auto piola = 0.5f * m->K * (J - 1 / J) * J * Matrix3f::Identity();
+  return {Matrix3f::Zero(), piola};
 }
 
 } // namespace mpm

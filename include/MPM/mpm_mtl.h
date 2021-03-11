@@ -12,8 +12,8 @@ struct MPM_Material {
 
   float lambda;
   float mu;
-  float K; // bulk modulus
-  float volume;
+  float K;      // bulk modulus
+  float volume; // particle's volume at time 0
   MPM_Material(float E, float nu, float mass, float density);
 };
 
@@ -21,8 +21,9 @@ struct MPM_Material {
 class MPM_CM {
 public:
   virtual Matrix3f calc_stress_tensor(const Particle &particle) = 0;
-  // virtual Matrix3f calc_strain_tensor(const Particle &particle) = 0;
   virtual float calc_psi(const Particle &particle) = 0;
+  virtual std::tuple<Matrix3f, Matrix3f>
+  calc_mixed_stress_tensor(const Particle &particle);
 };
 
 class NeoHookean_Piola : public MPM_CM {
@@ -43,6 +44,8 @@ class NeoHookean_Fluid : public MPM_CM {
 class CDMPM_Fluid : public MPM_CM {
   virtual Matrix3f calc_stress_tensor(const Particle &particle);
   virtual float calc_psi(const Particle &particle);
+  virtual std::tuple<Matrix3f, Matrix3f>
+  calc_mixed_stress_tensor(const Particle &particle);
 };
 
 } // namespace mpm

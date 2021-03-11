@@ -42,7 +42,7 @@ private:
   std::chrono::high_resolution_clock::time_point start;
 };
 
-#ifndef DIST_VERSION
+#ifndef MPM_NO_DEBUG
 // Client log macros
 #define MPM_FATAL(...) MPMLog::get_logger()->fatal(__VA_ARGS__)
 #define MPM_ERROR(...) MPMLog::get_logger()->error(__VA_ARGS__)

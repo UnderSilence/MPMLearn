@@ -237,6 +237,8 @@ void MPM_Simulator::set_transfer_scheme(TransferScheme ts) {
 
 void MPM_Simulator::prestep() {
   // MPM_PROFILE_FUNCTION();
+
+  // @MetaRu: follow parts calculate M : inertia tensor
   // tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
   //   // for (int iter = 0; iter < sim_info.particle_size; iter++) {
   //   // convert particles position to grid space by divide h
@@ -351,8 +353,10 @@ void MPM_Simulator::update_grid_force() {
     auto vol_p = particles[iter].material->volume;
     auto h = sim_info.h;
 
-    // use constitutive_model (may cause problems in multi-threads condition)
-    Matrix3f piola = cm->calc_stress_tensor(particles[iter]);
+    // return [F_based_stress and J_based_stress]
+    // to reduce numerical calculation errors
+    // all in first piola-kirchhoff stress
+    auto [stress_F, stress_J] = cm->calc_mixed_stress_tensor(particles[iter]);
 
     auto [base_node, wp, dwp] =
         quatratic_interpolation(particles[iter].pos_p / h);
@@ -373,7 +377,8 @@ void MPM_Simulator::update_grid_force() {
             // critical section
             tbb::spin_mutex::scoped_lock lock(grid_mutexs[index]);
 
-            grid_attrs[index].force_i -= vol_p * (piola)*grad_wip;
+            grid_attrs[index].force_i -=
+                vol_p * (stress_F * F.transpose() + stress_J) * grad_wip;
           }
         }
   });
