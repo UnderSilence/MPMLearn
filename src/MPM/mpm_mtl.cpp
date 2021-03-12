@@ -99,7 +99,6 @@ CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
   return {Matrix3f::Zero(), piola};
 }
 
-} // namespace mpm
 // yield surface
 
 bool vonMises::projectStrain(Particle &particle) {
