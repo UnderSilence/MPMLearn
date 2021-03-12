@@ -20,3 +20,6 @@ output/*
 proj/*
 project/*
 
+# clion output
+cmake-*/
+

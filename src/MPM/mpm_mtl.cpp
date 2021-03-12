@@ -121,7 +121,8 @@ bool vonMises::projectStrain(Particle &particle) {
   // hardening
   yield_stress += xi * delta_gamma;
 
-  Vector3f H = epsilon - delta_gamma / epsilon_dev_norm * epsilon_dev; // case II
+  Vector3f H =
+      epsilon - delta_gamma / epsilon_dev_norm * epsilon_dev; // case II
   F = U * vectorToMatrix(H.array().exp()) * V.transpose();
   return true;
 }
@@ -130,7 +131,7 @@ bool Snow::projectStrain(Particle &particle) {
   auto c = particle.material;
   auto &F = particle.F;
   Matrix3f U, V;
-  Vector3f Sigma; 
+  Vector3f Sigma;
   SVDSolverDiagonal(F, U, Sigma, V);
 
   float Fe_det = 1.f;
@@ -157,4 +158,4 @@ bool Snow::projectStrain(Particle &particle) {
   return false;
 }
 
-}// namespace MPM
+} // namespace mpm
