@@ -104,9 +104,9 @@ CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
 bool vonMises::projectStrain(Particle &particle) {
   auto c = particle.material;
   auto &F = particle.F;
-
   Matrix3f U, Sigma, V;
-  SVDSolverFloat(F, U, Sigma, V);
+  SVDSolver(F, U, Sigma, V);
+
   Vector3f epsilon = hatOfMatrix(Sigma).array().max(1e-4).log();
   float trace_epsilon = epsilon.sum();
   Vector3f epsilon_dev = epsilon - (trace_epsilon / 3) * Vector3f::Ones();
@@ -126,4 +126,35 @@ bool vonMises::projectStrain(Particle &particle) {
   return true;
 }
 
+bool Snow::projectStrain(Particle &particle) {
+  auto c = particle.material;
+  auto &F = particle.F;
+  Matrix3f U, V;
+  Vector3f Sigma; 
+  SVDSolverDiagonal(F, U, Sigma, V);
+
+  float Fe_det = 1.f;
+  for (int i = 0; i < 3; i++) {
+    Sigma(i) = std::max(std::min(Sigma(i), 1.f + theta_s), 1.f - theta_c);
+    Fe_det *= Sigma(i);
+  }
+
+  Matrix3f sigma_m = vectorToMatrix(Sigma);
+  Matrix3f Fe = U * sigma_m * V.transpose();
+  // T Jp_new = std::max(std::min(Jp * F.determinant() / Fe_det, max_Jp),
+  // min_Jp);
+  float Jp_new = Jp * F.determinant() / Fe_det;
+  if (!(Jp_new <= max_Jp))
+    Jp_new = max_Jp;
+  if (!(Jp_new >= min_Jp))
+    Jp_new = min_Jp;
+
+  F = Fe;
+  /*c->mu *= std::exp(psi * (Jp - Jp_new));
+  c->lambda *= std::exp(psi * (Jp - Jp_new));*/
+  Jp = Jp_new;
+
+  return false;
 }
+
+}// namespace MPM

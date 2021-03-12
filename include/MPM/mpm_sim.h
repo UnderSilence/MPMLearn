@@ -28,6 +28,7 @@ public:
                   MPM_Material *material);
 
   void set_constitutive_model(const std::shared_ptr<MPM_CM> &cm);
+  void set_plasticity(const std::shared_ptr<Plasticity> &plas);
 
   void set_transfer_scheme(TransferScheme ts);
   // void grid_initialize();
@@ -47,6 +48,7 @@ private:
   // MPM simulation consititutive model
   TransferScheme transfer_scheme = TransferScheme::APIC;
   std::shared_ptr<MPM_CM> cm = std::make_shared<NeoHookean_Piola>();
+  std::shared_ptr<Plasticity> plasticity = std::make_shared<Snow>();
 
   // storage the degree of freedoms
   tbb::concurrent_vector<int> active_nodes;

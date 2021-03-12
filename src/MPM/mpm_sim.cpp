@@ -226,6 +226,10 @@ void MPM_Simulator::set_constitutive_model(const std::shared_ptr<MPM_CM> &cm) {
   this->cm = cm;
 }
 
+void MPM_Simulator::set_plasticity(const std::shared_ptr<Plasticity> &plas) {
+  this->plasticity = plas;
+}
+
 void MPM_Simulator::set_transfer_scheme(TransferScheme ts) {
   this->transfer_scheme = ts;
   if (ts == TransferScheme::FLIP95) {
@@ -426,6 +430,7 @@ void MPM_Simulator::update_F(float dt) {
         }
 
     particles[iter].F = F + dt * weight * F;
+    plasticity->projectStrain(particles[iter]);
 
     MPM_ASSERT(
         particles[iter].F.determinant() > 0,
