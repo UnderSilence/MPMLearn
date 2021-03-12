@@ -237,34 +237,35 @@ void MPM_Simulator::set_transfer_scheme(TransferScheme ts) {
 
 void MPM_Simulator::prestep() {
   // MPM_PROFILE_FUNCTION();
+  /*
+  @MetaRu: follow parts calculate M : inertia tensor
+  tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
+    // for (int iter = 0; iter < sim_info.particle_size; iter++) {
+    // convert particles position to grid space by divide h
+    // particle position in grid space
+    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
+    auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
 
-  // @MetaRu: follow parts calculate M : inertia tensor
-  // tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
-  //   // for (int iter = 0; iter < sim_info.particle_size; iter++) {
-  //   // convert particles position to grid space by divide h
-  //   // particle position in grid space
-  //   Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
-  //   auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
+    auto &particle = particles[iter];
+    auto &mass_p = particle.material->mass;
+    particle.Dp = Matrix3f::Zero();
 
-  //   auto &particle = particles[iter];
-  //   auto &mass_p = particle.material->mass;
-  //   particle.Dp = Matrix3f::Zero();
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        for (int k = 0; k < 3; k++) {
+          // note: do not use auto here (cause error in release mode)
+          Vector3i curr_node = base_node + Vector3i(i, j, k);
+          int index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
+                      curr_node(1) * sim_info.grid_l + curr_node(2);
+          float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
+          Vector3f dxip = curr_node.cast<float>() - gs_particle_pos;
+          particle.Dp += wijk * dxip * dxip.transpose();
+        }
 
-  //   for (int i = 0; i < 3; i++)
-  //     for (int j = 0; j < 3; j++)
-  //       for (int k = 0; k < 3; k++) {
-  //         // note: do not use auto here (cause error in release mode)
-  //         Vector3i curr_node = base_node + Vector3i(i, j, k);
-  //         int index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
-  //                     curr_node(1) * sim_info.grid_l + curr_node(2);
-  //         float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
-  //         Vector3f dxip = curr_node.cast<float>() - gs_particle_pos;
-  //         particle.Dp += wijk * dxip * dxip.transpose();
-  //       }
-
-  //   MPM_INFO("particle {}'s postision = {}, Dp = \n{}", iter,
-  //            particle.pos_p.transpose(), particle.Dp);
-  // });
+    MPM_INFO("particle {}'s postision = {}, Dp = \n{}", iter,
+            particle.pos_p.transpose(), particle.Dp);
+  });
+  */
 
   tbb::parallel_for(0, sim_info.grid_size, [&](int i) {
     grid_attrs[i].mass_i = 0;
@@ -281,8 +282,9 @@ void MPM_Simulator::transfer_P2G() {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     // convert particles position to grid space by divide h
     // particle position in grid space
-    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
-    auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
+    Vector3f particle_pos = particles[iter].pos_p;
+    auto inv_h = 1.0f / sim_info.h;
+    auto [base_node, wp, dwp] = quatratic_interpolation(particle_pos * inv_h);
 
     auto particle = particles[iter];
     auto mass_p = particle.material->mass;
@@ -297,15 +299,16 @@ void MPM_Simulator::transfer_P2G() {
 
           // check if particles run out of boundaries
           MPM_ASSERT(0 <= index && index < sim_info.grid_size,
-                     " PARTICLE OUT OF GRID at Transfer_P2G\n\tposition: "
-                     "{}\tvelocity: {}",
+                     " PARTICLE OUT OF GRID at Transfer_P2G\n"
+                     "\tposition: {}"
+                     "\tvelocity: {}",
                      particle.pos_p.transpose(), particle.vel_p.transpose());
 
           float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           Vector3f plus = Vector3f::Zero();
           if (transfer_scheme == TransferScheme::APIC) {
-            plus = 4 * particles[iter].Bp *
-                   (curr_node.cast<float>() - gs_particle_pos);
+            plus = particles[iter].Bp * 4 * inv_h * inv_h *
+                   (curr_node.cast<float>() * sim_info.h - particle_pos);
           }
 
           {
@@ -351,7 +354,7 @@ void MPM_Simulator::update_grid_force() {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     auto F = particles[iter].F;
     auto vol_p = particles[iter].material->volume;
-    auto h = sim_info.h;
+    auto inv_h = 1.0f / sim_info.h;
 
     // return [F_based_stress and J_based_stress]
     // to reduce numerical calculation errors
@@ -359,14 +362,14 @@ void MPM_Simulator::update_grid_force() {
     auto [stress_F, stress_J] = cm->calc_mixed_stress_tensor(particles[iter]);
 
     auto [base_node, wp, dwp] =
-        quatratic_interpolation(particles[iter].pos_p / h);
+        quatratic_interpolation(particles[iter].pos_p * inv_h);
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
           Vector3i curr_node = base_node + Vector3i(i, j, k);
-          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) / h,
-                            wp(i, 0) * dwp(j, 1) * wp(k, 2) / h,
-                            wp(i, 0) * wp(j, 1) * dwp(k, 2) / h};
+          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+                            wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+                            wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
           auto index = curr_node.x() * sim_info.grid_h * sim_info.grid_l +
                        curr_node.y() * sim_info.grid_l + curr_node.z();
@@ -400,18 +403,18 @@ void MPM_Simulator::update_F(float dt) {
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     auto F = particles[iter].F;
-    auto h = sim_info.h;
+    auto inv_h = 1.0f / sim_info.h;
     auto [base_node, wp, dwp] =
-        quatratic_interpolation(particles[iter].pos_p / h);
+        quatratic_interpolation(particles[iter].pos_p * inv_h);
 
     Matrix3f weight = Matrix3f::Zero();
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
           Vector3i curr_node = base_node + Vector3i(i, j, k);
-          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) / h,
-                            wp(i, 0) * dwp(j, 1) * wp(k, 2) / h,
-                            wp(i, 0) * wp(j, 1) * dwp(k, 2) / h};
+          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+                            wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+                            wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
           auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
                        curr_node(1) * sim_info.grid_l + curr_node(2);
@@ -439,8 +442,9 @@ void MPM_Simulator::transfer_G2P() {
   // MPM_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // particle position in grid space
-    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
-    auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
+    Vector3f particle_pos = particles[iter].pos_p;
+    auto inv_h = 1.0f / sim_info.h;
+    auto [base_node, wp, dwp] = quatratic_interpolation(particle_pos * inv_h);
 
     Vector3f v_pic = Vector3f::Zero();
     Vector3f v_flip = particles[iter].vel_p;
@@ -461,7 +465,7 @@ void MPM_Simulator::transfer_G2P() {
           v_flip += wijk * (grid_attrs[index].vel_i - grid_attrs[index].vel_in);
           particles[iter].Bp +=
               wijk * grid_attrs[index].vel_i *
-              (curr_node.cast<float>() - gs_particle_pos).transpose();
+              (curr_node.cast<float>() * sim_info.h - particle_pos).transpose();
         }
 
     switch (transfer_scheme) {
