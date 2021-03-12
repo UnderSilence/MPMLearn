@@ -54,6 +54,8 @@ int main() {
   auto cm_fluid_1 = std::make_shared<mpm::QuatraticVolumePenalty>();
   auto cm_fluid_2 = std::make_shared<mpm::CDMPM_Fluid>();
 
+  auto plas_snow = std::make_shared<mpm::Snow>();
+
   sim->clear_simulation();
   Vector3f gravity{0.0f, -9.8f, 0.0f};
   Vector3f area{1.0f, 1.0f, 1.0f};
@@ -62,7 +64,8 @@ int main() {
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_fluid_1);
+  sim->set_constitutive_model(cm_solid);
+  sim->set_plasticity(plas_snow);
 
   sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
