@@ -48,4 +48,21 @@ class CDMPM_Fluid : public MPM_CM {
   calc_mixed_stress_tensor(const Particle &particle);
 };
 
+// Yield Surface
+class Plasticity {
+public:
+  std::string name;
+  virtual bool projectStrain(Particle& particle) = 0;
+  virtual ~Plasticity() {}
+};
+
+class vonMises : public Plasticity {
+  float yield_stress, fail_stress, xi, alpha;
+  vonMises(float yield_stress = 0, float xi = 0, float alpha = 0)
+      : yield_stress(yield_stress), xi(xi), alpha(alpha),
+        fail_stress(std::sqrt(3.f / 2.f) * yield_stress) {}
+  bool projectStrain(Particle &particle);
+  std::string name = "vonMises";
+};
+
 } // namespace mpm

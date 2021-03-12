@@ -21,14 +21,16 @@ endif()
 # message("cmake flag ${CMAKE_CXX_FLAGS}") 
 add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp mpm_mtl.cpp)
 
-find_package(Eigen3 CONFIG REQUIRED)
-target_link_libraries(MPM PRIVATE Eigen3::Eigen)
+if(UNIX)
+    find_package(Eigen3 CONFIG REQUIRED)
+	target_link_libraries(MPM PRIVATE Eigen3::Eigen)
 
-find_package(TBB CONFIG REQUIRED)
-target_link_libraries(MPM PRIVATE TBB::tbb)
+	find_package(TBB CONFIG REQUIRED)
+	target_link_libraries(MPM PRIVATE TBB::tbb)
 
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_link_libraries(MPM PRIVATE TBB::tbb_debug)
+	if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    	target_link_libraries(MPM PRIVATE TBB::tbb_debug)
+    endif()
 endif()
 
 target_link_libraries(MPM PRIVATE partio)

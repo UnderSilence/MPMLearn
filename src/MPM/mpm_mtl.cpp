@@ -1,4 +1,5 @@
 #include "MPM/mpm_mtl.h"
+#include "Math/matrix_solver.h"
 
 namespace mpm {
 
@@ -99,3 +100,31 @@ CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
 }
 
 } // namespace mpm
+// yield surface
+
+bool vonMises::projectStrain(Particle &particle) {
+  auto c = particle.material;
+  auto &F = particle.F;
+
+  Matrix3f U, Sigma, V;
+  SVDSolverFloat(F, U, Sigma, V);
+  Vector3f epsilon = hatOfMatrix(Sigma).array().max(1e-4).log();
+  float trace_epsilon = epsilon.sum();
+  Vector3f epsilon_dev = epsilon - (trace_epsilon / 3) * Vector3f::Ones();
+  float epsilon_dev_norm = epsilon_dev.norm();
+
+  float delta_gamma = epsilon_dev_norm - yield_stress / (2 * c->mu);
+  if (delta_gamma < 0) { // case I
+    return false;
+  }
+  alpha += sqrt(2.f / 3.f) * delta_gamma;
+
+  // hardening
+  yield_stress += xi * delta_gamma;
+
+  Vector3f H = epsilon - delta_gamma / epsilon_dev_norm * epsilon_dev; // case II
+  F = U * vectorToMatrix(H.array().exp()) * V.transpose();
+  return true;
+}
+
+}
