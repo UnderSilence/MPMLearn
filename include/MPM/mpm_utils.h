@@ -43,6 +43,15 @@ private:
 };
 
 #ifndef MPM_NO_DEBUG
+
+// Detect Platform
+#if defined(_WIN32)
+/* Windows x86 or x64  */
+#define MPM_PLATFORM_WINDOWS
+#elif defined(__linux__)
+#define MPM_PLATFORM_LINUX
+#endif
+
 // Client log macros
 #define MPM_FATAL(...) MPMLog::get_logger()->fatal(__VA_ARGS__)
 #define MPM_ERROR(...) MPMLog::get_logger()->error(__VA_ARGS__)
@@ -62,6 +71,16 @@ private:
 #define MPM_PROFILE(tag) MPMProfiler timer##__LINE__(tag)
 #define MPM_PROFILE_FUNCTION() MPM_PROFILE(MPM_FUNCTION_SIG)
 
+// define debugbreak tools
+#if defined(MPM_PLATFORM_WINDOWS)
+#define MPM_DEBUGBREAK() __debugbreak()
+#elif defined(MPM_PLATFORM_LINUX)
+#include <signal.h>
+#define MPM_DEBUGBREAK() raise(SIGTRAP)
+#else
+#error "Platform doesn't support debugbreak yet"
+#endif
+
 #else
 
 #define MPM_FATAL(...)
@@ -76,6 +95,7 @@ private:
 #define MPM_PROFILE(tag)
 #define MPM_PROFILE_FUNCTION()
 
-#endif
+#define MPM_DEBUGBREAK()
 
+#endif
 } // namespace mpm
