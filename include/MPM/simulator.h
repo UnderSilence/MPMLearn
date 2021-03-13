@@ -13,6 +13,7 @@ struct SimInfo;
 struct MPM_Material;
 class MPM_CM;
 class Plasticity;
+class MPM_Collision;
 
 // neohookean model
 class MPM_Simulator {
@@ -45,6 +46,13 @@ public:
 
   void substep(float dt);
   void clear_simulation();
+  void add_collision(const MPM_Collision& coll);
+  
+  template<class T, class ... Args> 
+  void add_collision(const T& coll,Args ... args) {
+    add_collision(coll);
+    add_collision(args ...);
+  }
   // bool export_result(const std::string &export_path, int curr_frame);
 
 private:
@@ -61,6 +69,7 @@ private:
 
   // storage the degree of freedoms
   tbb::concurrent_vector<int> active_nodes;
+  std::vector<MPM_Collision> colls;
   // std::vector<int> active_nodes;
 
   void prestep();

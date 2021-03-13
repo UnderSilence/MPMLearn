@@ -8,6 +8,7 @@
 #include "MPM/Utils/io.h"
 #include "MPM/Utils/logger.h"
 #include "MPM/Utils/profiler.h"
+#include "MPM/collision.h"
 #include "MPM/simulator.h"
 
 using namespace std;
@@ -67,14 +68,27 @@ int main() {
   Vector3f velocity{0.0f, 0.0f, 0.0f};
   float h = 0.02f;
 
+  auto wall_left = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          Vector3f(1.0f, 0.0f, 0.0f), Vector3f(0.1f, 0.0f, 0.0f)));
+  auto wall_right = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          Vector3f(-1.0f, 0.0f, 0.0f), Vector3f(0.9f, 0.0f, 0.0f)));
+  auto wall_forward = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          Vector3f(0.0f, 0.0f, 1.0f), Vector3f(0.0f, 0.0f, 0.1f)));
+  auto wall_back = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 0.0f, 0.9f)));
+  auto wall_bottom = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          Vector3f(0.0f, 1.0f, 0.0f), Vector3f(0.0f, 0.01f, 0.0f)));
+
+
   sim->mpm_initialize(gravity, area, h);
   sim->set_constitutive_model(cm_fluid_2);
+  sim->add_collision(wall_left, wall_right, wall_back, wall_forward, wall_bottom);
   // sim->set_plasticity(plas_snow);
 
   sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
   std::vector<Vector3f> positions;
-  auto model_path = "../models/small_cube.obj";
+  auto model_path = "../../models/dense_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
     sim->add_object(positions,
@@ -85,7 +99,7 @@ int main() {
   }
 
   float CFL = 0.05f;
-  float max_dt = 1e-3f;
+  float max_dt = 5e-4f;
   float dt = max_dt;
 
   int frame_rate = 60;
@@ -99,9 +113,9 @@ int main() {
            "\tparticle_size: {}",
            frame_rate, dt, positions.size());
 
-  std::string output_dir("../output/test/");
-
+  std::string output_dir("../../output/test/");
   write_particles(output_dir + "0.bgeo", sim->get_positions());
+
   for (int frame = 0; frame < total_frame;) {
     {
       MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));

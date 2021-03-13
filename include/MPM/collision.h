@@ -10,16 +10,15 @@ public:
   enum CollisionType { STICKY, SLIP };
 
   MPM_Collision(const std::shared_ptr<MPM_LevelSet> &levelset,
-                CollisionType coll_type, float fraction_rate);
+                CollisionType coll_type = SLIP, float fraction = 0.1f);
 
   virtual ~MPM_Collision() = default;
 
-  virtual void solve_grid_collision(const GridAttr &grid_attr, float dx);
-  virtual void solve_particle_collision(const Particle &particle);
+  virtual void solve_collision(const Vector3f& xi, Vector3f& vi);
 
 private:
   std::shared_ptr<MPM_LevelSet> levelset;
   CollisionType coll_type;
-  float fraction_rate;
+  float friction;
 };
 } // namespace mpm

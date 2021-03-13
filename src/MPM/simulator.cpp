@@ -2,6 +2,7 @@
 #include "MPM/Math/interpolation.h"
 #include "MPM/Physics/constitutive_model.h"
 #include "MPM/Physics/plasticity.h"
+#include "MPM/collision.h"
 
 #include "MPM/Utils/io.h"
 #include "MPM/mpm_pch.h"
@@ -175,8 +176,11 @@ void MPM_Simulator::mpm_initialize(const Vector3f &gravity,
         grid_attrs[index].vel_in = Vector3f::Zero();
         grid_attrs[index].Xi = Vector3i(i, j, k);
       }
+}
 
-} // namespace mpm
+void MPM_Simulator::add_collision(const MPM_Collision &coll) {
+  colls.emplace_back(coll);
+}
 
 void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
                                const std::vector<Vector3f> &velocities,
@@ -447,37 +451,37 @@ void MPM_Simulator::update_F(float dt) {
     }
     if (particles[iter].F.determinant() < 0) {
 
-      MPM_ERROR(
+      MPM_WARN(
           "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
           "original F:\n{}, determinant: {}\n"
           "weight:\n {}, determinant: {}",
           iter, particles[iter].F, particles[iter].F.determinant(), F,
           F.determinant(), weight, weight.determinant());
 
-      for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++)
-          for (int k = 0; k < 3; k++) {
-            Vector3i curr_node = base_node + Vector3i(i, j, k);
-            Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
-                              wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
-                              wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
+      // for (int i = 0; i < 3; i++)
+      //   for (int j = 0; j < 3; j++)
+      //     for (int k = 0; k < 3; k++) {
+      //       Vector3i curr_node = base_node + Vector3i(i, j, k);
+      //       Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+      //                         wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+      //                         wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
-            auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
-                         curr_node(1) * sim_info.grid_l + curr_node(2);
-            weight += grid_attrs[index].vel_i * grad_wip.transpose();
-            MPM_ERROR("check neighbor grid[{}]:\n"
-                      "\tvel_i: {}\n"
-                      "\tvel_in: {}\n"
-                      "\tmass_i: {}\n"
-                      "\tforce_i: {}\n"
-                      "\tX_i: {}",
-                      index, grid_attrs[index].vel_i.transpose(),
-                      grid_attrs[index].vel_in.transpose(),
-                      grid_attrs[index].mass_i,
-                      grid_attrs[index].force_i.transpose(),
-                      grid_attrs[index].Xi.transpose());
-          }
-      assert(false);
+      //       auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
+      //                    curr_node(1) * sim_info.grid_l + curr_node(2);
+      //       weight += grid_attrs[index].vel_i * grad_wip.transpose();
+      //       MPM_ERROR("check neighbor grid[{}]:\n"
+      //                 "\tvel_i: {}\n"
+      //                 "\tvel_in: {}\n"
+      //                 "\tmass_i: {}\n"
+      //                 "\tforce_i: {}\n"
+      //                 "\tX_i: {}",
+      //                 index, grid_attrs[index].vel_i.transpose(),
+      //                 grid_attrs[index].vel_in.transpose(),
+      //                 grid_attrs[index].mass_i,
+      //                 grid_attrs[index].force_i.transpose(),
+      //                 grid_attrs[index].Xi.transpose());
+      //     }
+      // assert(false);
     }
   });
   // MPM_INFO("particles[0]'s F:\n{}", particles[0].F);
@@ -541,9 +545,23 @@ void MPM_Simulator::advection(float dt) {
       [&](float x, float y) { return std::max(x, y); });
 }
 
-void MPM_Simulator::solve_grid_collision() {}
+void MPM_Simulator::solve_grid_collision() {
+  tbb::parallel_for(0, (int)active_nodes.size(), [&](int i) {
+    int index = active_nodes[i];
+    for (auto &coll : colls) {
+      coll.solve_collision(grid_attrs[index].Xi.cast<float>() * sim_info.h,
+                           grid_attrs[index].vel_i);
+    }
+  });
+}
 
-void MPM_Simulator::solve_particle_collision() {}
+void MPM_Simulator::solve_particle_collision() {
+  tbb::parallel_for(0, (int)sim_info.particle_size, [&](int i) {
+    for (auto &coll : colls) {
+      coll.solve_collision(particles[i].pos_p, particles[i].vel_p);
+    }
+  });
+}
 
 void MPM_Simulator::solve_grid_boundary(int thickness) {
   // MPM_SCOPED_PROFILE_FUNCTION();
