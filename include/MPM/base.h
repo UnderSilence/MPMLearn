@@ -1,14 +1,14 @@
 #pragma once
 
-
-#include "spdlog/fmt/ostr.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
-
-using namespace Eigen;
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/SparseQR>
+#include <Eigen/StdVector>
 
 namespace mpm {
 
+using namespace Eigen;
 struct GridAttr {
   float mass_i;
   Vector3f vel_in;

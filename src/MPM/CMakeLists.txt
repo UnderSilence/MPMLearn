@@ -19,17 +19,26 @@ endif()
 
 # add_definitions(-DDISTRIBUTE)
 # message("cmake flag ${CMAKE_CXX_FLAGS}")
-add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp mpm_mtl.cpp)
+aux_source_directory(Math MATH_SRCS)
+aux_source_directory(Physics PHYSICS_SRCS)
+aux_source_directory(Utils UTILS_SRCS)
+aux_source_directory(. MPM_SRCS)
 
-find_package(Eigen3 CONFIG REQUIRED)
-target_link_libraries(MPM PRIVATE Eigen3::Eigen)
+add_executable(MPM ${MATH_SRCS} ${PHYSICS_SRCS} ${UTILS_SRCS} ${MPM_SRCS})
 
-find_package(TBB CONFIG REQUIRED)
-target_link_libraries(MPM PRIVATE TBB::tbb)
-
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_link_libraries(MPM PRIVATE TBB::tbb_debug)
+find_package(Eigen3 CONFIG)
+if(Eigen3_FOUND)
+    target_link_libraries(MPM PRIVATE Eigen3::Eigen)
 endif()
+
+find_package(TBB CONFIG)
+if(TBB_FOUND)
+    target_link_libraries(MPM PRIVATE TBB::tbb)
+    if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+        target_link_libraries(MPM PRIVATE TBB::tbb_debug)
+    endif()
+endif()
+
 
 target_link_libraries(MPM PRIVATE partio)
 target_link_libraries(MPM PRIVATE spdlog)

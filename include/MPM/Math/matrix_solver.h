@@ -1,89 +1,23 @@
 #pragma once
-#include "Eigen/Eigen"
 
-using namespace Eigen;
+#include "MPM/base.h"
 
+namespace mpm {
 // Singular Value Decomposition
-void SVDSolver(Matrix3f &F, Matrix3f &U, Matrix3f &Sigma, Matrix3f &V) {
-  Eigen::JacobiSVD<Eigen::Matrix3f> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
-  Matrix3f tempU = svd.matrixU();
-  Matrix3f tempV = svd.matrixV();
 
-  Vector3f singVals = svd.singularValues();
-  Matrix3f tempSigma = Matrix3f::Zero();
-  tempSigma(0, 0) = singVals(0);
-  tempSigma(1, 1) = singVals(1);
-  tempSigma(2, 2) = singVals(2);
+void SVDSolver(Matrix3f &F, Matrix3f &U, Matrix3f &Sigma, Matrix3f &V);
+void SVDSolverDiagonal(Matrix3f &F, Matrix3f &U, Vector3f &Sigma, Matrix3f &V);
 
-  // sorting
-  if (tempU.determinant() < 0) {
-    tempU(0, 2) *= -1;
-    tempU(1, 2) *= -1;
-    tempU(2, 2) *= -1;
-    tempSigma(2, 2) *= -1;
-  }
-
-  if (tempV.determinant() < 0) {
-    tempV(0, 2) *= -1;
-    tempV(1, 2) *= -1;
-    tempV(2, 2) *= -1;
-    tempSigma(2, 2) *= -1;
-  }
-
-  if (tempSigma(0, 0) < tempSigma(1, 1)) {
-    float tempRecord = tempSigma(0, 0);
-    tempSigma(0, 0) = tempSigma(1, 1);
-    tempSigma(1, 1) = tempRecord;
-  }
-
-  U = tempU;
-  V = tempV;
-  Sigma = tempSigma;
-}
-
-// Singular Value Decomposition
-void SVDSolverDiagonal(Matrix3f &F, Matrix3f &U, Vector3f &Sigma, Matrix3f &V) {
-  Eigen::JacobiSVD<Eigen::Matrix3f> svd(F, Eigen::ComputeFullU |
-                                               Eigen::ComputeFullV);
-  Matrix3f tempU = svd.matrixU();
-  Matrix3f tempV = svd.matrixV();
-
-  Vector3f singVals = svd.singularValues();
-
-  // sorting
-  if (tempU.determinant() < 0) {
-    tempU(0, 2) *= -1;
-    tempU(1, 2) *= -1;
-    tempU(2, 2) *= -1;
-    singVals(2) *= -1;
-  }
-
-  if (tempV.determinant() < 0) {
-    tempV(0, 2) *= -1;
-    tempV(1, 2) *= -1;
-    tempV(2, 2) *= -1;
-    singVals(2) *= -1;
-  }
-
-  if (singVals(0) < singVals(1)) {
-    float tempRecord = singVals(0);
-    singVals(0) = singVals(1);
-    singVals(1) = tempRecord;
-  }
-
-  U = tempU;
-  V = tempV;
-  Sigma = singVals;
-}
-
-inline Vector3f hatOfMatrix(Matrix3f A) {
+inline Vector3f hatOfMatrix(const Matrix3f &A) {
   return Vector3f(A(0, 0), A(1, 1), A(2, 2));
 }
 
-inline Matrix3f vectorToMatrix(Vector3f V) { 
+inline Matrix3f vectorToMatrix(const Vector3f &V) {
   Matrix3f A = Matrix3f::Identity();
   A(0, 0) = V[0];
   A(1, 1) = V[1];
   A(2, 2) = V[2];
   return A;
 }
+
+} // namespace mpm

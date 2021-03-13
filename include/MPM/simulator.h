@@ -1,11 +1,18 @@
 #pragma once
-#include "MPM/mpm_defs.h"
-#include "MPM/mpm_mtl.h"
+
+#include "MPM/base.h"
+#include "MPM/material.h"
 #include "tbb/concurrent_vector.h"
 #include "tbb/spin_mutex.h"
 
-using namespace Eigen;
 namespace mpm {
+
+struct Particle;
+struct GridAttr;
+struct SimInfo;
+struct MPM_CM;
+struct MPM_Material;
+struct Plasticity;
 
 // neohookean model
 class MPM_Simulator {
@@ -47,8 +54,8 @@ private:
 
   // MPM simulation consititutive model
   TransferScheme transfer_scheme = TransferScheme::APIC;
-  std::shared_ptr<MPM_CM> cm = std::make_shared<NeoHookean_Piola>();
-  std::shared_ptr<Plasticity> plasticity = std::make_shared<Snow>();
+  std::shared_ptr<MPM_CM> cm;
+  std::shared_ptr<Plasticity> plasticity;
 
   // storage the degree of freedoms
   tbb::concurrent_vector<int> active_nodes;

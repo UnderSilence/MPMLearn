@@ -1,9 +1,13 @@
-#include "MPM/mpm_sim.h"
+#include "MPM/simulator.h"
+#include "MPM/Math/interpolation.h"
+#include "MPM/Physics/constitutive_model.h"
+#include "MPM/Physics/plasticity.h"
+
+#include "MPM/Utils/io.h"
+#include "MPM/mpm_pch.h"
 
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
-
-#include "MPM/mpm_utils.h"
 
 namespace mpm {
 
@@ -81,7 +85,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
   write_particles(output_dir + "0.bgeo", get_positions());
   for (int frame = 0; frame < total_frame;) {
     {
-      MPM_PROFILE("frame#" + std::to_string(frame + 1));
+      MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));
       for (int i = 0; i < steps_per_frame; i++) {
         // MPM_INFO("begin step {}", i);
         substep(dt);
@@ -94,8 +98,11 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
 }
 
 void MPM_Simulator::substep(float dt) {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   // TODO: add profiler later
+  MPM_ASSERT(cm && plasticity,
+             "PLEASE SET CONSTITUTIVE_MODEL & PLASTICITY FIRST");
+
   prestep();
   transfer_P2G();
   add_gravity();
@@ -240,7 +247,7 @@ void MPM_Simulator::set_transfer_scheme(TransferScheme ts) {
 }
 
 void MPM_Simulator::prestep() {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   /*
   @MetaRu: follow parts calculate M : inertia tensor
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
@@ -281,7 +288,7 @@ void MPM_Simulator::prestep() {
 }
 
 void MPM_Simulator::transfer_P2G() {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     // convert particles position to grid space by divide h
@@ -342,7 +349,7 @@ void MPM_Simulator::transfer_P2G() {
 } // namespace mpm
 
 void MPM_Simulator::add_gravity() {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   // MPM_ASSERT(active_nodes.size() < sim_info.grid_size);
   tbb::parallel_for(0, (int)active_nodes.size(), [&](int i) {
     int index = active_nodes[i];
@@ -353,7 +360,7 @@ void MPM_Simulator::add_gravity() {
 void MPM_Simulator::update_grid_force() {
   // update grid forcing from particles F(deformation gradients)
 
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     auto F = particles[iter].F;
@@ -392,7 +399,7 @@ void MPM_Simulator::update_grid_force() {
 }
 
 void MPM_Simulator::update_grid_velocity(float dt) {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)active_nodes.size(), [&](int i) {
     int index = active_nodes[i];
     // vel_n+1 = vel_n + f_i / m_i * dt
@@ -403,7 +410,7 @@ void MPM_Simulator::update_grid_velocity(float dt) {
 }
 
 void MPM_Simulator::update_F(float dt) {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     auto F = particles[iter].F;
@@ -444,7 +451,7 @@ void MPM_Simulator::update_F(float dt) {
 }
 
 void MPM_Simulator::transfer_G2P() {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // particle position in grid space
     Vector3f particle_pos = particles[iter].pos_p;
@@ -486,14 +493,14 @@ void MPM_Simulator::transfer_G2P() {
 }
 
 void MPM_Simulator::advection(float dt) {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, sim_info.particle_size, [&](int i) {
     particles[i].pos_p += dt * particles[i].vel_p;
   });
 }
 
 void MPM_Simulator::solve_grid_boundary(int thickness) {
-  // MPM_PROFILE_FUNCTION();
+  // MPM_SCOPED_PROFILE_FUNCTION();
   // Sticky boundary
   auto [W, H, L] = std::tie(sim_info.grid_w, sim_info.grid_h, sim_info.grid_l);
   // check x-axis bound

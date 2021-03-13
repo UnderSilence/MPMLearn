@@ -1,11 +1,15 @@
 
-#include <filesystem>
-#include <iostream>
-#include <memory>
+
 #include <tbb/task_scheduler_init.h>
 
-#include "MPM/mpm_sim.h"
-#include "MPM/mpm_utils.h"
+#include "MPM/Math/interpolation.h"
+#include "MPM/Physics/constitutive_model.h"
+#include "MPM/Physics/plasticity.h"
+#include "MPM/Utils/io.h"
+#include "MPM/Utils/logger.h"
+#include "MPM/Utils/profiler.h"
+#include "MPM/simulator.h"
+
 using namespace std;
 using namespace Eigen;
 using namespace mpm;
@@ -73,10 +77,10 @@ int main() {
   auto model_path = "../models/dense_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
-    mpm::MPM_INFO("read in particles from {} SUCCESS", model_path);
+    MPM_INFO("read in particles from {} SUCCESS", model_path);
     sim->add_object(positions,
                     std::vector<Vector3f>(positions.size(), velocity),
-                    &mtl_water);
+                    &mtl_jello);
   } else {
     return 0;
   }
@@ -86,12 +90,12 @@ int main() {
   int total_frame = 200;
   int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
 
-  mpm::MPM_INFO("Simulation start, Meta Informations:\n"
-                "\tframe_rate: {}\n"
-                "\tdt: {}\n"
-                "\tsteps_per_frame: {}\n"
-                "\tparticle_size: {}",
-                frame_rate, dt, steps_per_frame, positions.size());
+  MPM_INFO("Simulation start, Meta Informations:\n"
+           "\tframe_rate: {}\n"
+           "\tdt: {}\n"
+           "\tsteps_per_frame: {}\n"
+           "\tparticle_size: {}",
+           frame_rate, dt, steps_per_frame, positions.size());
 
   std::string output_dir("../output/test/");
 
@@ -105,7 +109,7 @@ int main() {
     // }
 
     {
-      mpm::MPM_PROFILE("frame#" + std::to_string(frame + 1));
+      mpm::MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));
       for (int i = 0; i < steps_per_frame; i++) {
         sim->substep(dt);
       }
