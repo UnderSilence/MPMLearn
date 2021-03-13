@@ -40,8 +40,10 @@ public:
   void set_transfer_scheme(TransferScheme ts);
   // void grid_initialize();
   // void particle_initialize();
-  void substep(float dt);
   std::vector<Vector3f> get_positions() const;
+  float get_max_velocity() const;
+
+  void substep(float dt);
   void clear_simulation();
   // bool export_result(const std::string &export_path, int curr_frame);
 

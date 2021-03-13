@@ -20,8 +20,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
 endif()
 
-message(${LIBRARY_OUTPUT_PATH})
-file(COPY ${SHADERS} DESTINATION ${EXECUTABLE_OUTPUT_DIRECTORY}${CMAKE_BUILD_TYPE}/shaders)
+message(${EXECUTABLE_OUTPUT_PATH})
 
 add_subdirectory(external/glad)
 add_subdirectory(external/partio)

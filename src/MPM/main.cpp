@@ -68,8 +68,8 @@ int main() {
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_solid);
-  sim->set_plasticity(plas_snow);
+  sim->set_constitutive_model(cm_fluid_1);
+  // sim->set_plasticity(plas_snow);
 
   sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
@@ -77,48 +77,69 @@ int main() {
   auto model_path = "../models/dense_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
-    MPM_INFO("read in particles from {} SUCCESS", model_path);
     sim->add_object(positions,
                     std::vector<Vector3f>(positions.size(), velocity),
-                    &mtl_jello);
+                    &mtl_water);
   } else {
     return 0;
   }
 
+  float CFL = 0.05f;
+  float max_dt = 1e-3f;
+  float dt = max_dt;
+
   int frame_rate = 60;
-  float dt = 1e-4f;
   int total_frame = 200;
-  int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
+  float time_per_frame = 1.0f / frame_rate;
+  float total_time = 0.0f;
 
   MPM_INFO("Simulation start, Meta Informations:\n"
            "\tframe_rate: {}\n"
-           "\tdt: {}\n"
-           "\tsteps_per_frame: {}\n"
+           "\tmax_dt: {}\n"
            "\tparticle_size: {}",
-           frame_rate, dt, steps_per_frame, positions.size());
+           frame_rate, dt, positions.size());
 
   std::string output_dir("../output/test/");
 
   write_particles(output_dir + "0.bgeo", sim->get_positions());
   for (int frame = 0; frame < total_frame;) {
-    // add another jello
-    // if (frame && frame % 50 == 0) {
-    //   sim->add_object(positions,
-    //                   std::vector<Vector3f>(positions.size(), velocity),
-    //                   &mtl_water);
-    // }
-
     {
-      mpm::MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));
-      for (int i = 0; i < steps_per_frame; i++) {
+      MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));
+
+      float mmax_vel = 0.0f;
+      float curr_time = 0.0f;
+      float min_dt = max_dt;
+      int steps = 0;
+
+      while (curr_time < time_per_frame) {
+        dt = std::min(max_dt,
+                      h * CFL / std::max(0.0001f, sim->get_max_velocity()));
+        mmax_vel = std::max(mmax_vel, sim->get_max_velocity());
+
+        min_dt = std::min(dt, min_dt);
+
+        if (dt + curr_time >= time_per_frame) {
+          dt = time_per_frame - curr_time;
+        }
         sim->substep(dt);
+
+        steps++;
+        curr_time += dt;
+        total_time += dt;
       }
+
+      write_particles(output_dir + std::to_string(++frame) + ".bgeo",
+                      sim->get_positions());
+      MPM_INFO("frame#{} info:\n"
+               "\tsteps: {}\n"
+               "\tmax_vel: {}\n"
+               "\tmin_dt, max_dt: {}, {}\n"
+               "\ttotal_time: {}",
+               frame, steps, mmax_vel, min_dt, max_dt, total_time);
     }
-    write_particles(output_dir + std::to_string(++frame) + ".bgeo",
-                    sim->get_positions());
   }
   // sim->mpm_demo(cm_fluid, "neohookean_fluids/");
 
-  printf("mpm finished!\n");
+  MPM_INFO("===SIMULATION FINISHED===\n");
   return 0;
 }

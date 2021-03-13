@@ -18,6 +18,9 @@ bool read_particles(const std::string &model_path,
         positions.push_back(pos);
       }
     }
+
+    MPM_INFO("read in particles[size: {}] from {} SUCCESS", positions.size(),
+             model_path);
     return true;
   } else {
     MPM_ERROR("model_path:{} not found", model_path);

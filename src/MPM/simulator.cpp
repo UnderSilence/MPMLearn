@@ -7,6 +7,7 @@
 #include "MPM/mpm_pch.h"
 
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_reduce.h>
 #include <tbb/spin_mutex.h>
 
 namespace mpm {
@@ -100,8 +101,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
 void MPM_Simulator::substep(float dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
   // TODO: add profiler later
-  MPM_ASSERT(cm && plasticity,
-             "PLEASE SET CONSTITUTIVE_MODEL & PLASTICITY FIRST");
+  MPM_ASSERT(cm, "PLEASE SET CONSTITUTIVE_MODEL BEFORE SIMULATION");
 
   prestep();
   transfer_P2G();
@@ -121,6 +121,8 @@ std::vector<Vector3f> MPM_Simulator::get_positions() const {
                     [&](int i) { positions[i] = particles[i].pos_p; });
   return positions;
 }
+
+float MPM_Simulator::get_max_velocity() const { return sim_info.max_velocity; }
 
 // bool MPM_Simulator::export_result(const std::string &export_dir,
 //                                   int curr_frame) {
@@ -285,6 +287,7 @@ void MPM_Simulator::prestep() {
     grid_attrs[i].vel_in = Vector3f::Zero();
   });
   active_nodes.resize(0);
+  sim_info.max_velocity = 0.0f;
 }
 
 void MPM_Simulator::transfer_P2G() {
@@ -318,8 +321,8 @@ void MPM_Simulator::transfer_P2G() {
           float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           Vector3f plus = Vector3f::Zero();
           if (transfer_scheme == TransferScheme::APIC) {
-            plus = particles[iter].Bp * 4 * inv_h * inv_h *
-                   (curr_node.cast<float>() * sim_info.h - particle_pos);
+            plus = particles[iter].Bp * 4 *
+                   (curr_node.cast<float>() - particle_pos * inv_h);
           }
 
           {
@@ -437,8 +440,9 @@ void MPM_Simulator::update_F(float dt) {
         }
 
     particles[iter].F = F + dt * weight * F;
-    plasticity->projectStrain(particles[iter]);
-
+    if (plasticity) {
+      plasticity->projectStrain(particles[iter]);
+    }
     MPM_ASSERT(
         particles[iter].F.determinant() > 0,
         "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
@@ -477,7 +481,7 @@ void MPM_Simulator::transfer_G2P() {
           v_flip += wijk * (grid_attrs[index].vel_i - grid_attrs[index].vel_in);
           particles[iter].Bp +=
               wijk * grid_attrs[index].vel_i *
-              (curr_node.cast<float>() * sim_info.h - particle_pos).transpose();
+              (curr_node.cast<float>() - particle_pos * inv_h).transpose();
         }
 
     switch (transfer_scheme) {
@@ -494,9 +498,18 @@ void MPM_Simulator::transfer_G2P() {
 
 void MPM_Simulator::advection(float dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
-  tbb::parallel_for(0, sim_info.particle_size, [&](int i) {
-    particles[i].pos_p += dt * particles[i].vel_p;
-  });
+  sim_info.max_velocity = tbb::parallel_reduce(
+      tbb::blocked_range<Particle *>(particles,
+                                     particles + sim_info.particle_size),
+      0.0f,
+      [&](const tbb::blocked_range<Particle *> &r, float max_vel) -> float {
+        for (auto iter = r.begin(); iter != r.end(); ++iter) {
+          iter->pos_p += dt * iter->vel_p;
+          max_vel = std::max(max_vel, iter->vel_p.norm());
+        }
+        return max_vel;
+      },
+      [&](float x, float y) { return std::max(x, y); });
 }
 
 void MPM_Simulator::solve_grid_boundary(int thickness) {

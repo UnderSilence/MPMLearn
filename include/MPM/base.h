@@ -50,6 +50,8 @@ struct SimInfo {
   Vector3f gravity = Vector3f::Zero();
   Vector3f world_area = Vector3f::Zero();
   float h = 0.0f;
+
+  float max_velocity = 0.0f;
   unsigned int curr_step = 0;
 };
 
