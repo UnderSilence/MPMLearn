@@ -108,10 +108,12 @@ void MPM_Simulator::substep(float dt) {
   add_gravity();
   update_grid_force();
   update_grid_velocity(dt);
-  solve_grid_boundary(2);
+  solve_grid_boundary(3);
+  solve_grid_collision();
   update_F(dt);
   transfer_G2P();
   advection(dt);
+  solve_particle_collision();
   sim_info.curr_step++;
 }
 
@@ -443,13 +445,40 @@ void MPM_Simulator::update_F(float dt) {
     if (plasticity) {
       plasticity->projectStrain(particles[iter]);
     }
-    MPM_ASSERT(
-        particles[iter].F.determinant() > 0,
-        "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
-        "original F:\n{}, determinant: {}\n"
-        "weight:\n {}, determinant: {}",
-        iter, particles[iter].F, particles[iter].F.determinant(), F,
-        F.determinant(), weight, weight.determinant());
+    if (particles[iter].F.determinant() < 0) {
+
+      MPM_ERROR(
+          "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
+          "original F:\n{}, determinant: {}\n"
+          "weight:\n {}, determinant: {}",
+          iter, particles[iter].F, particles[iter].F.determinant(), F,
+          F.determinant(), weight, weight.determinant());
+
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          for (int k = 0; k < 3; k++) {
+            Vector3i curr_node = base_node + Vector3i(i, j, k);
+            Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+                              wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+                              wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
+
+            auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
+                         curr_node(1) * sim_info.grid_l + curr_node(2);
+            weight += grid_attrs[index].vel_i * grad_wip.transpose();
+            MPM_ERROR("check neighbor grid[{}]:\n"
+                      "\tvel_i: {}\n"
+                      "\tvel_in: {}\n"
+                      "\tmass_i: {}\n"
+                      "\tforce_i: {}\n"
+                      "\tX_i: {}",
+                      index, grid_attrs[index].vel_i.transpose(),
+                      grid_attrs[index].vel_in.transpose(),
+                      grid_attrs[index].mass_i,
+                      grid_attrs[index].force_i.transpose(),
+                      grid_attrs[index].Xi.transpose());
+          }
+      assert(false);
+    }
   });
   // MPM_INFO("particles[0]'s F:\n{}", particles[0].F);
 }
@@ -511,6 +540,10 @@ void MPM_Simulator::advection(float dt) {
       },
       [&](float x, float y) { return std::max(x, y); });
 }
+
+void MPM_Simulator::solve_grid_collision() {}
+
+void MPM_Simulator::solve_particle_collision() {}
 
 void MPM_Simulator::solve_grid_boundary(int thickness) {
   // MPM_SCOPED_PROFILE_FUNCTION();

@@ -68,13 +68,13 @@ int main() {
   float h = 0.02f;
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_fluid_1);
+  sim->set_constitutive_model(cm_fluid_2);
   // sim->set_plasticity(plas_snow);
 
   sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
   std::vector<Vector3f> positions;
-  auto model_path = "../models/dense_cube.obj";
+  auto model_path = "../models/small_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
     sim->add_object(positions,

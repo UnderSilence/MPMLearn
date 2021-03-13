@@ -75,8 +75,8 @@ private:
   void advection(float dt);
 
   // handle collision
-  // void solve_paritcle_collision();
-  // void solve_grid_collision();
+  void solve_particle_collision();
+  void solve_grid_collision();
   void solve_grid_boundary(int thickness = 2);
 };
 } // namespace mpm

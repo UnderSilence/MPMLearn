@@ -86,7 +86,8 @@ CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
   // if (J >= 1) {
   //   return Matrix3f::Zero();
   // }
-  auto piola = 0.5f * m->K * (J - 1 / J) * J * Matrix3f::Identity();
+  auto piola =
+      0.5f * m->K * (J - 1 / std::max(1e-5f, J)) * J * Matrix3f::Identity();
   return {Matrix3f::Zero(), piola};
 }
 
