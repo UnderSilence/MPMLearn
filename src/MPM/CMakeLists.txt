@@ -18,20 +18,20 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
 endif()
 
 # add_definitions(-DDISTRIBUTE)
-# message("cmake flag ${CMAKE_CXX_FLAGS}") 
+# message("cmake flag ${CMAKE_CXX_FLAGS}")
 add_executable(MPM main.cpp mpm_sim.cpp mpm_utils.cpp mpm_defs.cpp mpm_mtl.cpp)
 
-if(UNIX)
-    find_package(Eigen3 CONFIG REQUIRED)
-	target_link_libraries(MPM PRIVATE Eigen3::Eigen)
+find_package(Eigen3 CONFIG REQUIRED)
+target_link_libraries(MPM PRIVATE Eigen3::Eigen)
 
-	find_package(TBB CONFIG REQUIRED)
-	target_link_libraries(MPM PRIVATE TBB::tbb)
+find_package(TBB CONFIG REQUIRED)
+target_link_libraries(MPM PRIVATE TBB::tbb)
 
-	if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    	target_link_libraries(MPM PRIVATE TBB::tbb_debug)
-    endif()
+if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    target_link_libraries(MPM PRIVATE TBB::tbb_debug)
 endif()
 
 target_link_libraries(MPM PRIVATE partio)
 target_link_libraries(MPM PRIVATE spdlog)
+
+target_precompile_headers(MPM PUBLIC ${CMAKE_SOURCE_DIR}/include/MPM/mpm_pch.h)

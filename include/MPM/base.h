@@ -1,15 +1,5 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Dense>
-#include <Eigen/Sparse>
-#include <Eigen/SparseQR>
-#include <Eigen/StdVector>
-#include <chrono>
-#include <cmath>
-#include <fstream>
-#include <iostream>
-#include <tuple>
 
 #include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
