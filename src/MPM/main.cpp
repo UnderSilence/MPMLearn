@@ -19,10 +19,10 @@ void quatratic_test() {
   MPM_PROFILE_FUNCTION();
   MPM_INFO("{} start", __func__);
   float h = 0.02f;
-  int W = 1.0f / h + 1;
-  int H = 1.0f / h + 1;
-  int L = 1.0f / h + 1;
-  Vector3f pos(0.648932, 0.121521, 0.265484);
+  auto W = static_cast<int>(1.0f / h + 1);
+  auto H = static_cast<int>(1.0f / h + 1);
+  auto L = static_cast<int>(1.0f / h + 1);
+  Vector3f pos(0.648932f, 0.121521f, 0.265484f);
   auto [base_node, wp, dwp] = mpm::quatratic_interpolation(pos / h);
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)

@@ -146,9 +146,9 @@ void MPM_Simulator::mpm_initialize(const Vector3f &gravity,
   sim_info.world_area = world_area;
 
   // grid_initialize
-  int W = world_area[0] / h + 1;
-  int H = world_area[1] / h + 1;
-  int L = world_area[2] / h + 1;
+  auto W = static_cast<int>(world_area[0] / h + 1);
+  auto H = static_cast<int>(world_area[1] / h + 1);
+  auto L = static_cast<int>(world_area[2] / h + 1);
 
   sim_info.grid_w = W;
   sim_info.grid_h = H;

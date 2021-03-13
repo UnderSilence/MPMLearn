@@ -18,7 +18,8 @@ public:
   virtual void solve_particle_collision(const Particle &particle);
 
 private:
-  float fraction_rate;
   std::shared_ptr<MPM_LevelSet> levelset;
-}
+  CollisionType coll_type;
+  float fraction_rate;
+};
 } // namespace mpm

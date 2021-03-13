@@ -10,9 +10,9 @@ namespace mpm {
 struct Particle;
 struct GridAttr;
 struct SimInfo;
-struct MPM_CM;
 struct MPM_Material;
-struct Plasticity;
+class MPM_CM;
+class Plasticity;
 
 // neohookean model
 class MPM_Simulator {

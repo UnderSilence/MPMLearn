@@ -11,7 +11,7 @@ public:
   Plasticity() {}
   virtual ~Plasticity() {}
   std::string name;
-  virtual bool projectStrain(Particle &particle) { return false; }
+  virtual bool projectStrain(Particle &particle) = 0;
 };
 
 class vonMises : public Plasticity {
