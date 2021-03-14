@@ -44,8 +44,7 @@ void quatratic_test() {
   MPM_INFO("{} end", __func__);
 }
 
-int main() {
-  // tbb::task_scheduler_init init(1);
+int main(int argc, char** argv) {
   // initialize logger
   mpm::MPMLog::init();
   // quatratic_test();
@@ -63,19 +62,19 @@ int main() {
 
   sim->clear_simulation();
   Vector3f gravity{0.0f, -9.8f, 0.0f};
-  Vector3f area{1.0f, 1.0f, 1.0f};
+  Vector3f area{2.0f, 2.0f, 2.0f};
   // Vector3f velocity{-2.5f, 0.5f, -0.3f};
   Vector3f velocity{0.0f, 0.0f, 0.0f};
   float h = 0.02f;
 
   auto wall_left = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(1.0f, 0.0f, 0.0f), Vector3f(0.1f, 0.0f, 0.0f)));
+          Vector3f(1.0f, 0.0f, 0.0f), Vector3f(0.2f, 0.0f, 0.0f)));
   auto wall_right = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(-1.0f, 0.0f, 0.0f), Vector3f(0.9f, 0.0f, 0.0f)));
+          Vector3f(-1.0f, 0.0f, 0.0f), Vector3f(1.5f, 0.0f, 0.0f)));
   auto wall_forward = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(0.0f, 0.0f, 1.0f), Vector3f(0.0f, 0.0f, 0.1f)));
+          Vector3f(0.0f, 0.0f, 1.0f), Vector3f(0.0f, 0.0f, 0.2f)));
   auto wall_back = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 0.0f, 0.9f)));
+          Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 0.0f, 1.5f)));
   auto wall_bottom = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
           Vector3f(0.0f, 1.0f, 0.0f), Vector3f(0.0f, 0.01f, 0.0f)));
 
@@ -113,8 +112,12 @@ int main() {
            "\tparticle_size: {}",
            frame_rate, dt, positions.size());
 
-  std::string output_dir("../../output/test/");
-  write_particles(output_dir + "0.bgeo", sim->get_positions());
+  fs::path output_dir("../../output/test/");
+  if(not fs::exists(output_dir)) {
+    fs::create_directory(output_dir);
+  }
+
+  write_particles(output_dir.generic_string() + "0.bgeo", sim->get_positions());
 
   for (int frame = 0; frame < total_frame;) {
     {
@@ -142,7 +145,7 @@ int main() {
         total_time += dt;
       }
 
-      write_particles(output_dir + std::to_string(++frame) + ".bgeo",
+      write_particles(output_dir.generic_string() + std::to_string(++frame) + ".bgeo",
                       sim->get_positions());
       MPM_INFO("frame#{} info:\n"
                "\tsteps: {}\n"
