@@ -3,7 +3,7 @@
 
 namespace mpm {
 
-MPM_Material::MPM_Material(float E, float nu, float mass, float density)
+MPM_Material::MPM_Material(T E, T nu, T mass, T density)
     : E(E), nu(nu), mass(mass), density(density) {
   mu = 0.5f * E / (1 + nu);
   lambda = E * nu / (1 + nu) / (1 - 2 * nu);

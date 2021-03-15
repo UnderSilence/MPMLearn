@@ -4,17 +4,26 @@
 
 namespace mpm {
 
-bool read_particles(const std::string &model_path,
-                    std::vector<Vector3f> &positions) {
+bool read_particles(const std::string &model_path, std::vector<VT> &positions) {
   std::ifstream input(model_path);
   std::string line;
-  Vector3f pos;
+  std::stringstream ss;
+  VT pos;
+  T x, y, z;
 
   if (input) {
     positions.clear();
     while (std::getline(input, line)) {
       if (line[0] == 'v') {
-        sscanf(line.c_str(), "v %f %f %f", &pos[0], &pos[1], &pos[2]);
+        ss.clear();
+        ss.str(line.c_str() + 1);
+        if constexpr (DIM == 3) {
+          ss >> x >> y >> z;
+          pos << x, y, z;
+        } else if constexpr (DIM == 2) {
+          ss >> x >> y;
+          pos << x, y;
+        }
         positions.push_back(pos);
       }
     }
@@ -29,7 +38,7 @@ bool read_particles(const std::string &model_path,
 }
 
 bool write_particles(const std::string &write_path,
-                     const std::vector<Vector3f> &positions) {
+                     const std::vector<VT> &positions) {
   Partio::ParticlesDataMutable *parts = Partio::create();
   Partio::ParticleAttribute pos_attr =
       parts->addAttribute("position", Partio::VECTOR, 3);
@@ -38,10 +47,10 @@ bool write_particles(const std::string &write_path,
 
   for (auto i = 0; i < positions.size(); i++) {
     int idx = parts->addParticle();
-    auto *p = parts->dataWrite<Vector3f>(pos_attr, idx);
+    auto *p = parts->dataWrite<Eigen::Vector3f>(pos_attr, idx);
     auto *index = parts->dataWrite<int>(index_attr, idx);
 
-    *p = positions[i];
+    *p = positions[i].cast<float>();
     *index = i;
   }
 
@@ -49,4 +58,7 @@ bool write_particles(const std::string &write_path,
   parts->release();
   return true;
 }
+
+template <typename Vec> void read_from_string(Vec &x, const char *str) {}
+
 } // namespace mpm

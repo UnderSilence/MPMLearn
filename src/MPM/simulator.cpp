@@ -54,18 +54,18 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
                              const std::string &output_relative_path) {
 
   clear_simulation();
-  Vector3f gravity{0.0f, -9.8f, 0.0f};
-  Vector3f area{1.0f, 1.0f, 1.0f};
-  Vector3f velocity{-0.5f, 0.5f, -0.3f};
+  VT gravity{0.0f, -9.8f, 0.0f};
+  VT area{1.0f, 1.0f, 1.0f};
+  VT velocity{-0.5f, 0.5f, -0.3f};
 
-  float h = 0.02f;
+  T h = 0.02f;
   auto mtl_jello = new MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
   auto mtl_water = new MPM_Material(50.0f, 0.3f, 8e-6f, 1.0f);
 
   mpm_initialize(gravity, area, h);
   cm = cm_demo;
 
-  std::vector<Vector3f> positions;
+  std::vector<VT> positions;
   auto model_path = "../models/dense_cube.obj";
 
   if (read_particles(model_path, positions)) {
@@ -74,7 +74,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
   }
 
   int frame_rate = 60;
-  float dt = 1e-3f;
+  T dt = 1e-3f;
   int total_frame = 300;
   int steps_per_frame = (int)ceil((1.0f / frame_rate) / dt);
 
@@ -101,7 +101,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
   }
 }
 
-void MPM_Simulator::substep(float dt) {
+void MPM_Simulator::substep(T dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
   // TODO: add profiler later
   MPM_ASSERT(cm, "PLEASE SET CONSTITUTIVE_MODEL BEFORE SIMULATION");
@@ -120,19 +120,19 @@ void MPM_Simulator::substep(float dt) {
   sim_info.curr_step++;
 }
 
-std::vector<Vector3f> MPM_Simulator::get_positions() const {
-  std::vector<Vector3f> positions(sim_info.particle_size);
+std::vector<VT> MPM_Simulator::get_positions() const {
+  std::vector<VT> positions(sim_info.particle_size);
   tbb::parallel_for(0, sim_info.particle_size,
                     [&](int i) { positions[i] = particles[i].pos_p; });
   return positions;
 }
 
-float MPM_Simulator::get_max_velocity() const { return sim_info.max_velocity; }
+T MPM_Simulator::get_max_velocity() const { return sim_info.max_velocity; }
 
 // bool MPM_Simulator::export_result(const std::string &export_dir,
 //                                   int curr_frame) {
 //   // MPM_INFO("export frame_{}'s result.", curr_frame);
-//   std::vector<Vector3f> positions(sim_info.particle_size);
+//   std::vector<VT> positions(sim_info.particle_size);
 
 //   tbb::parallel_for(0, sim_info.particle_size,
 //                     [&](int i) { positions[i] = particles[i].pos_p; });
@@ -142,8 +142,8 @@ float MPM_Simulator::get_max_velocity() const { return sim_info.max_velocity; }
 //   return write_particles(export_path, positions);
 // }
 
-void MPM_Simulator::mpm_initialize(const Vector3f &gravity,
-                                   const Vector3f &world_area, float h) {
+void MPM_Simulator::mpm_initialize(const VT &gravity, const VT &world_area,
+                                   T h) {
   sim_info.h = h;
   sim_info.gravity = gravity;
   sim_info.world_area = world_area;
@@ -173,10 +173,10 @@ void MPM_Simulator::mpm_initialize(const Vector3f &gravity,
       for (int k = 0; k < L; k++) {
         int index = i * H * L + j * L + k;
         grid_attrs[index].mass_i = 0;
-        grid_attrs[index].force_i = Vector3f::Zero();
-        grid_attrs[index].vel_i = Vector3f::Zero();
-        grid_attrs[index].vel_in = Vector3f::Zero();
-        grid_attrs[index].Xi = Vector3i(i, j, k);
+        grid_attrs[index].force_i = VT::Zero();
+        grid_attrs[index].vel_i = VT::Zero();
+        grid_attrs[index].vel_in = VT::Zero();
+        grid_attrs[index].Xi = VINT(i, j, k);
       }
 }
 
@@ -184,8 +184,8 @@ void MPM_Simulator::add_collision(const MPM_Collision &coll) {
   colls.emplace_back(coll);
 }
 
-void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
-                               const std::vector<Vector3f> &velocities,
+void MPM_Simulator::add_object(const std::vector<VT> &positions,
+                               const std::vector<VT> &velocities,
                                MPM_Material *material) {
 
   MPM_ASSERT(positions.size() == velocities.size() && material != nullptr,
@@ -204,17 +204,17 @@ void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
   for (auto i = sim_info.particle_size; i < new_size; i++) {
     particles[i].pos_p = positions[i - sim_info.particle_size];
     particles[i].vel_p = velocities[i - sim_info.particle_size];
-    particles[i].F = Matrix3f::Identity();
-    particles[i].Fe = Matrix3f::Identity();
-    particles[i].Fp = Matrix3f::Identity();
-    particles[i].Bp = Matrix3f::Zero();
+    particles[i].F = MT::Identity();
+    // particles[i].Fe = MT::Identity();
+    // particles[i].Fp = MT::Identity();
+    particles[i].Bp = MT::Zero();
     particles[i].material = material;
   }
 
   sim_info.particle_size = new_size;
 }
 
-void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
+void MPM_Simulator::add_object(const std::vector<VT> &positions,
                                MPM_Material *material) {
   MPM_ASSERT(material != nullptr, "MATERIAL SHOULD NOT BE NULLPTR");
   auto new_size = sim_info.particle_size + positions.size();
@@ -230,10 +230,10 @@ void MPM_Simulator::add_object(const std::vector<Vector3f> &positions,
 
   for (auto i = sim_info.particle_size; i < new_size; i++) {
     particles[i].pos_p = positions[i - sim_info.particle_size];
-    particles[i].F = Matrix3f::Identity();
-    particles[i].Fe = Matrix3f::Identity();
-    particles[i].Fp = Matrix3f::Identity();
-    particles[i].Bp = Matrix3f::Zero();
+    particles[i].F = MT::Identity();
+    // particles[i].Fe = MT::Identity();
+    // particles[i].Fp = MT::Identity();
+    particles[i].Bp = MT::Zero();
     particles[i].material = material;
   }
   sim_info.particle_size = new_size;
@@ -264,22 +264,22 @@ void MPM_Simulator::prestep() {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     // convert particles position to grid space by divide h
     // particle position in grid space
-    Vector3f gs_particle_pos = particles[iter].pos_p / sim_info.h;
+    VT gs_particle_pos = particles[iter].pos_p / sim_info.h;
     auto [base_node, wp, dwp] = quatratic_interpolation(gs_particle_pos);
 
     auto &particle = particles[iter];
     auto &mass_p = particle.material->mass;
-    particle.Dp = Matrix3f::Zero();
+    particle.Dp = MT::Zero();
 
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
           // note: do not use auto here (cause error in release mode)
-          Vector3i curr_node = base_node + Vector3i(i, j, k);
+          VINT curr_node = base_node + VINT(i, j, k);
           int index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
                       curr_node(1) * sim_info.grid_l + curr_node(2);
-          float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
-          Vector3f dxip = curr_node.cast<float>() - gs_particle_pos;
+          T wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
+          VT dxip = curr_node.cast<T>() - gs_particle_pos;
           particle.Dp += wijk * dxip * dxip.transpose();
         }
 
@@ -290,9 +290,9 @@ void MPM_Simulator::prestep() {
 
   tbb::parallel_for(0, sim_info.grid_size, [&](int i) {
     grid_attrs[i].mass_i = 0;
-    grid_attrs[i].force_i = Vector3f::Zero();
-    grid_attrs[i].vel_i = Vector3f::Zero();
-    grid_attrs[i].vel_in = Vector3f::Zero();
+    grid_attrs[i].force_i = VT::Zero();
+    grid_attrs[i].vel_i = VT::Zero();
+    grid_attrs[i].vel_in = VT::Zero();
   });
   active_nodes.resize(0);
   sim_info.max_velocity = 0.0f;
@@ -304,7 +304,7 @@ void MPM_Simulator::transfer_P2G() {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     // convert particles position to grid space by divide h
     // particle position in grid space
-    Vector3f particle_pos = particles[iter].pos_p;
+    VT particle_pos = particles[iter].pos_p;
     auto inv_h = 1.0f / sim_info.h;
     auto [base_node, wp, dwp] = quatratic_interpolation(particle_pos * inv_h);
 
@@ -315,7 +315,7 @@ void MPM_Simulator::transfer_P2G() {
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
           // note: do not use auto here (cause error in release mode)
-          Vector3i curr_node = base_node + Vector3i(i, j, k);
+          VINT curr_node = base_node + VINT(i, j, k);
           int index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
                       curr_node(1) * sim_info.grid_l + curr_node(2);
 
@@ -326,11 +326,11 @@ void MPM_Simulator::transfer_P2G() {
                      "\tvelocity: {}",
                      particle.pos_p.transpose(), particle.vel_p.transpose());
 
-          float wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
-          Vector3f plus = Vector3f::Zero();
+          T wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
+          VT plus = VT::Zero();
           if (transfer_scheme == TransferScheme::APIC) {
             plus = particles[iter].Bp * 4 *
-                   (curr_node.cast<float>() - particle_pos * inv_h);
+                   (curr_node.cast<T>() - particle_pos * inv_h);
           }
 
           {
@@ -354,7 +354,7 @@ void MPM_Simulator::transfer_P2G() {
       grid_attrs[iter].vel_in =
           grid_attrs[iter].vel_in / grid_attrs[iter].mass_i;
     } else {
-      grid_attrs[iter].vel_in = Vector3f::Zero();
+      grid_attrs[iter].vel_in = VT::Zero();
     }
   });
 } // namespace mpm
@@ -388,10 +388,10 @@ void MPM_Simulator::update_grid_force() {
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
-          Vector3i curr_node = base_node + Vector3i(i, j, k);
-          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
-                            wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
-                            wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
+          VINT curr_node = base_node + VINT(i, j, k);
+          VT grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+                      wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+                      wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
           auto index = curr_node.x() * sim_info.grid_h * sim_info.grid_l +
                        curr_node.y() * sim_info.grid_l + curr_node.z();
@@ -409,7 +409,7 @@ void MPM_Simulator::update_grid_force() {
   });
 }
 
-void MPM_Simulator::update_grid_velocity(float dt) {
+void MPM_Simulator::update_grid_velocity(T dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)active_nodes.size(), [&](int i) {
     int index = active_nodes[i];
@@ -420,7 +420,7 @@ void MPM_Simulator::update_grid_velocity(float dt) {
   });
 }
 
-void MPM_Simulator::update_F(float dt) {
+void MPM_Simulator::update_F(T dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
@@ -429,14 +429,14 @@ void MPM_Simulator::update_F(float dt) {
     auto [base_node, wp, dwp] =
         quatratic_interpolation(particles[iter].pos_p * inv_h);
 
-    Matrix3f weight = Matrix3f::Zero();
+    MT weight = MT::Zero();
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
-          Vector3i curr_node = base_node + Vector3i(i, j, k);
-          Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
-                            wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
-                            wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
+          VINT curr_node = base_node + VINT(i, j, k);
+          VT grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+                      wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
+                      wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
           auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
                        curr_node(1) * sim_info.grid_l + curr_node(2);
@@ -451,8 +451,8 @@ void MPM_Simulator::update_F(float dt) {
     if (plasticity) {
       plasticity->projectStrain(particles[iter]);
     }
-    if (particles[iter].F.determinant() < 0) {
 
+    if (particles[iter].F.determinant() < 0) {
       MPM_WARN(
           "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
           "original F:\n{}, determinant: {}\n"
@@ -463,8 +463,8 @@ void MPM_Simulator::update_F(float dt) {
       // for (int i = 0; i < 3; i++)
       //   for (int j = 0; j < 3; j++)
       //     for (int k = 0; k < 3; k++) {
-      //       Vector3i curr_node = base_node + Vector3i(i, j, k);
-      //       Vector3f grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
+      //       VINT curr_node = base_node + VINT(i, j, k);
+      //       VT grad_wip{dwp(i, 0) * wp(j, 1) * wp(k, 2) * inv_h,
       //                         wp(i, 0) * dwp(j, 1) * wp(k, 2) * inv_h,
       //                         wp(i, 0) * wp(j, 1) * dwp(k, 2) * inv_h};
 
@@ -493,18 +493,18 @@ void MPM_Simulator::transfer_G2P() {
   // MPM_SCOPED_PROFILE_FUNCTION();
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // particle position in grid space
-    Vector3f particle_pos = particles[iter].pos_p;
+    VT particle_pos = particles[iter].pos_p;
     auto inv_h = 1.0f / sim_info.h;
     auto [base_node, wp, dwp] = quatratic_interpolation(particle_pos * inv_h);
 
-    Vector3f v_pic = Vector3f::Zero();
-    Vector3f v_flip = particles[iter].vel_p;
-    particles[iter].Bp = Matrix3f::Zero();
+    VT v_pic = VT::Zero();
+    VT v_flip = particles[iter].vel_p;
+    particles[iter].Bp = MT::Zero();
 
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
-          Vector3i curr_node = base_node + Vector3i(i, j, k);
+          VINT curr_node = base_node + VINT(i, j, k);
           auto wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           auto index = curr_node(0) * sim_info.grid_h * sim_info.grid_l +
                        curr_node(1) * sim_info.grid_l + curr_node(2);
@@ -516,7 +516,7 @@ void MPM_Simulator::transfer_G2P() {
           v_flip += wijk * (grid_attrs[index].vel_i - grid_attrs[index].vel_in);
           particles[iter].Bp +=
               wijk * grid_attrs[index].vel_i *
-              (curr_node.cast<float>() - particle_pos * inv_h).transpose();
+              (curr_node.cast<T>() - particle_pos * inv_h).transpose();
         }
 
     switch (transfer_scheme) {
@@ -531,27 +531,27 @@ void MPM_Simulator::transfer_G2P() {
   });
 }
 
-void MPM_Simulator::advection(float dt) {
+void MPM_Simulator::advection(T dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
   sim_info.max_velocity = tbb::parallel_reduce(
       tbb::blocked_range<Particle *>(particles,
                                      particles + sim_info.particle_size),
       0.0f,
-      [&](const tbb::blocked_range<Particle *> &r, float max_vel) -> float {
+      [&](const tbb::blocked_range<Particle *> &r, T max_vel) -> T {
         for (auto iter = r.begin(); iter != r.end(); ++iter) {
           iter->pos_p += dt * iter->vel_p;
           max_vel = std::max(max_vel, iter->vel_p.norm());
         }
         return max_vel;
       },
-      [&](float x, float y) { return std::max(x, y); });
+      [&](T x, T y) { return std::max(x, y); });
 }
 
 void MPM_Simulator::solve_grid_collision() {
   tbb::parallel_for(0, (int)active_nodes.size(), [&](int i) {
     int index = active_nodes[i];
     for (auto &coll : colls) {
-      coll.solve_collision(grid_attrs[index].Xi.cast<float>() * sim_info.h,
+      coll.solve_collision(grid_attrs[index].Xi.cast<T>() * sim_info.h,
                            grid_attrs[index].vel_i);
     }
   });

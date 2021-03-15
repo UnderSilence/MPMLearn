@@ -9,25 +9,24 @@
 #include "settings.h"
 namespace mpm {
 
-using namespace Eigen;
 struct GridAttr {
-  float mass_i;
-  Vector3f vel_in;
-  Vector3f vel_i;
-  Vector3f force_i;
-  Vector3i Xi;
+  T mass_i;
+  VT vel_in;
+  VT vel_i;
+  VT force_i;
+  VINT Xi;
 };
 
 struct Particle {
-  Vector3f pos_p;
-  Vector3f vel_p;
-  Matrix3f F; // deformation gradients
-  Matrix3f Fe;
-  Matrix3f Fp;
-  Matrix3f Bp; // for APIC transfer
+  VT pos_p;
+  VT vel_p;
+  MT F; // deformation gradients
+  // MT Fe;
+  // MT Fp;
+  MT Bp; // for APIC transfer
 
-  float cp;    // fluids ratio
-  Matrix3f Dp; // inertia tensor
+  // T cp;  // fluids ratio
+  // MT Dp; // inertia tensor
 
   struct MPM_Material *material;
 };
@@ -40,22 +39,22 @@ struct SimInfo {
   int grid_l = 0;
 
   // simulation factors
-  // float E = 50.0f;     // Young's modules
-  // float nu = 0.3f;     // Possion ratio
-  float alpha = 0.95f; // 0.95 flip/pic
+  // T E = 50.0f;     // Young's modules
+  // T nu = 0.3f;     // Possion ratio
+  T alpha = 0.95f; // 0.95 flip/pic
 
-  // float particle_density;
-  // float particle_mass;
+  // T particle_density;
+  // T particle_mass;
   // std::string model_path;
 
-  Vector3f gravity = Vector3f::Zero();
-  Vector3f world_area = Vector3f::Zero();
-  float h = 0.0f;
+  VT gravity = VT::Zero();
+  VT world_area = VT::Zero();
+  T h = 0.0f;
 
-  float max_velocity = 0.0f;
+  T max_velocity = 0.0f;
   unsigned int curr_step = 0;
 };
 
-// Matrix3f neohookean_piola(float E, float nu, const Matrix3f &F);
+// MT neohookean_piola(T E, T nu, const MT &F);
 
 } // namespace mpm

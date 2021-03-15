@@ -25,15 +25,12 @@ public:
   void mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
                 const std::string &output_relative_path = "");
 
-  void mpm_initialize(const Vector3f &gravity, const Vector3f &world_area,
-                      float h);
+  void mpm_initialize(const VT &gravity, const VT &world_area, T h);
 
-  void add_object(const std::vector<Vector3f> &positions,
-                  const std::vector<Vector3f> &velocities,
-                  MPM_Material *material);
+  void add_object(const std::vector<VT> &positions,
+                  const std::vector<VT> &velocities, MPM_Material *material);
 
-  void add_object(const std::vector<Vector3f> &positions,
-                  MPM_Material *material);
+  void add_object(const std::vector<VT> &positions, MPM_Material *material);
 
   void set_constitutive_model(const std::shared_ptr<MPM_CM> &cm);
   void set_plasticity(const std::shared_ptr<Plasticity> &plas);
@@ -41,17 +38,17 @@ public:
   void set_transfer_scheme(TransferScheme ts);
   // void grid_initialize();
   // void particle_initialize();
-  std::vector<Vector3f> get_positions() const;
-  float get_max_velocity() const;
+  std::vector<VT> get_positions() const;
+  T get_max_velocity() const;
 
-  void substep(float dt);
+  void substep(T dt);
   void clear_simulation();
-  void add_collision(const MPM_Collision& coll);
-  
-  template<class T, class ... Args> 
-  void add_collision(const T& coll,Args ... args) {
+  void add_collision(const MPM_Collision &coll);
+
+  template <class T, class... Args>
+  void add_collision(const T &coll, Args... args) {
     add_collision(coll);
-    add_collision(args ...);
+    add_collision(args...);
   }
   // bool export_result(const std::string &export_path, int curr_frame);
 
@@ -76,12 +73,12 @@ private:
   void transfer_P2G();
   void add_gravity();
   // TODO: support variety
-  //  E : float, nu : float, F : Matrix3f
+  //  E : T, nu : T, F : MT
   void update_grid_force();
-  void update_grid_velocity(float dt);
-  void update_F(float dt);
+  void update_grid_velocity(T dt);
+  void update_F(T dt);
   void transfer_G2P();
-  void advection(float dt);
+  void advection(T dt);
 
   // handle collision
   void solve_particle_collision();

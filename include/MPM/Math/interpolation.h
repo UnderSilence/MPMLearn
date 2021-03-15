@@ -4,10 +4,9 @@
 
 namespace mpm {
 
-inline Vector3f calc_quadratic(float o, float x);
+inline VT calc_quadratic(T o, T x);
 
-inline Vector3f calc_quadratic_grad(float o, float x);
+inline VT calc_quadratic_grad(T o, T x);
 // under gridspace coords
-std::tuple<Vector3i, Matrix3f, Matrix3f>
-quatratic_interpolation(const Vector3f &particle_pos);
+std::tuple<VINT, MT, MT> quatratic_interpolation(const VT &particle_pos);
 } // namespace mpm

@@ -2,12 +2,11 @@
 #include "MPM/material.h"
 
 namespace mpm {
-std::tuple<Matrix3f, Matrix3f>
-MPM_CM::calc_mixed_stress_tensor(const Particle &particle) {
-  return {calc_stress_tensor(particle), Matrix3f::Zero()};
+std::tuple<MT, MT> MPM_CM::calc_mixed_stress_tensor(const Particle &particle) {
+  return {calc_stress_tensor(particle), MT::Zero()};
 }
 
-Matrix3f NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
+MT NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -16,7 +15,7 @@ Matrix3f NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
   return piola;
 }
 
-float NeoHookean_Piola::calc_psi(const Particle &particle) {
+T NeoHookean_Piola::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -27,7 +26,7 @@ float NeoHookean_Piola::calc_psi(const Particle &particle) {
   return psi;
 }
 
-Matrix3f QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
+MT QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -35,7 +34,7 @@ Matrix3f QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
   return 0.5f * m->lambda * 2 * (J - 1) * J * F.inverse().transpose();
 }
 
-float QuatraticVolumePenalty::calc_psi(const Particle &particle) {
+T QuatraticVolumePenalty::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -43,15 +42,15 @@ float QuatraticVolumePenalty::calc_psi(const Particle &particle) {
   return 0.5f * m->lambda * std::pow(J - 1, 2);
 }
 
-std::tuple<Matrix3f, Matrix3f>
+std::tuple<MT, MT>
 QuatraticVolumePenalty::calc_mixed_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = std::max(1e-4f, F.determinant());
-  return {Matrix3f::Zero(), m->lambda * (J - 1) * J * Matrix3f::Identity()};
+  auto J = F.determinant();
+  return {MT::Zero(), m->lambda * (J - 1) * J * MT::Identity()};
 }
 
-Matrix3f NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
+MT NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -59,7 +58,7 @@ Matrix3f NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
   return piola;
 }
 
-float NeoHookean_Fluid::calc_psi(const Particle &particle) {
+T NeoHookean_Fluid::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -70,11 +69,11 @@ float NeoHookean_Fluid::calc_psi(const Particle &particle) {
   return psi;
 }
 
-Matrix3f CDMPM_Fluid::calc_stress_tensor(const Particle &particle) {
+MT CDMPM_Fluid::calc_stress_tensor(const Particle &particle) {
   throw std::logic_error("function not implement yet");
 }
 
-float CDMPM_Fluid::calc_psi(const Particle &particle) {
+T CDMPM_Fluid::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
   auto J = F.determinant();
@@ -84,7 +83,7 @@ float CDMPM_Fluid::calc_psi(const Particle &particle) {
   return psi;
 }
 
-std::tuple<Matrix3f, Matrix3f>
+std::tuple<MT, MT>
 CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
@@ -92,11 +91,10 @@ CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
   // d(psi)/d(J) * d(J)/d(F) =
   // 0.5 * K (J - 1 / J) * J * F^{-T}
   // if (J >= 1) {
-  //   return Matrix3f::Zero();
+  //   return MT::Zero();
   // }
-  auto piola =
-      0.5f * m->K * (J - 1 / std::max(1e-5f, J)) * J * Matrix3f::Identity();
-  return {Matrix3f::Zero(), piola};
+  auto piola = 0.5f * m->K * (J - 1 / J) * J * MT::Identity();
+  return {MT::Zero(), piola};
 }
 
 } // namespace mpm

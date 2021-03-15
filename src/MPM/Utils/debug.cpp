@@ -13,7 +13,7 @@ template <class Tensor> std::string make_string(const Tensor &v) {
   return output;
 }
 
-template <> std::string make_string<Vector3f>(const Vector3f &v);
-template <> std::string make_string<Matrix3f>(const Matrix3f &v);
+template <> std::string make_string<VT>(const VT &v);
+template <> std::string make_string<MT>(const MT &v);
 
 } // namespace mpm

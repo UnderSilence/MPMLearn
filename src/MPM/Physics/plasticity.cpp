@@ -8,15 +8,15 @@ namespace mpm {
 bool vonMises::projectStrain(Particle &particle) {
   auto c = particle.material;
   auto &F = particle.F;
-  Matrix3f U, Sigma, V;
+  MT U, Sigma, V;
   SVDSolver(F, U, Sigma, V);
 
-  Vector3f epsilon = hatOfMatrix(Sigma).array().max(1e-4).log();
-  float trace_epsilon = epsilon.sum();
-  Vector3f epsilon_dev = epsilon - (trace_epsilon / 3) * Vector3f::Ones();
-  float epsilon_dev_norm = epsilon_dev.norm();
+  VT epsilon = hatOfMatrix(Sigma).array().max(1e-4).log();
+  T trace_epsilon = epsilon.sum();
+  VT epsilon_dev = epsilon - (trace_epsilon / 3) * VT::Ones();
+  T epsilon_dev_norm = epsilon_dev.norm();
 
-  float delta_gamma = epsilon_dev_norm - yield_stress / (2 * c->mu);
+  T delta_gamma = epsilon_dev_norm - yield_stress / (2 * c->mu);
   if (delta_gamma < 0) { // case I
     return false;
   }
@@ -25,8 +25,7 @@ bool vonMises::projectStrain(Particle &particle) {
   // hardening
   yield_stress += xi * delta_gamma;
 
-  Vector3f H =
-      epsilon - delta_gamma / epsilon_dev_norm * epsilon_dev; // case II
+  VT H = epsilon - delta_gamma / epsilon_dev_norm * epsilon_dev; // case II
   F = U * vectorToMatrix(H.array().exp()) * V.transpose();
   return true;
 }
@@ -34,21 +33,21 @@ bool vonMises::projectStrain(Particle &particle) {
 bool Snow::projectStrain(Particle &particle) {
   auto c = particle.material;
   auto &F = particle.F;
-  Matrix3f U, V;
-  Vector3f Sigma;
+  MT U, V;
+  VT Sigma;
   SVDSolverDiagonal(F, U, Sigma, V);
 
-  float Fe_det = 1.f;
+  T Fe_det = 1.f;
   for (int i = 0; i < 3; i++) {
-    Sigma(i) = std::max(std::min(Sigma(i), 1.f + theta_s), 1.f - theta_c);
+    Sigma(i) = std::max(std::min(Sigma(i), T(1) + theta_s), T(1) - theta_c);
     Fe_det *= Sigma(i);
   }
 
-  Matrix3f sigma_m = vectorToMatrix(Sigma);
-  Matrix3f Fe = U * sigma_m * V.transpose();
+  MT sigma_m = vectorToMatrix(Sigma);
+  MT Fe = U * sigma_m * V.transpose();
   // T Jp_new = std::max(std::min(Jp * F.determinant() / Fe_det, max_Jp),
   // min_Jp);
-  float Jp_new = Jp * F.determinant() / Fe_det;
+  T Jp_new = Jp * F.determinant() / Fe_det;
   if (!(Jp_new <= max_Jp))
     Jp_new = max_Jp;
   if (!(Jp_new >= min_Jp))

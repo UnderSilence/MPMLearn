@@ -19,39 +19,38 @@ namespace fs = std::filesystem;
 void quatratic_test() {
   MPM_PROFILE_FUNCTION();
   MPM_INFO("{} start", __func__);
-  float h = 0.02f;
+  T h = 0.02f;
   auto W = static_cast<int>(1.0f / h + 1);
   auto H = static_cast<int>(1.0f / h + 1);
   auto L = static_cast<int>(1.0f / h + 1);
-  Vector3f pos(0.648932f, 0.121521f, 0.265484f);
+  VT pos(0.648932f, 0.121521f, 0.265484f);
   auto [base_node, wp, dwp] = mpm::quatratic_interpolation(pos / h);
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       for (int k = 0; k < 3; k++) {
-        float wi = wp(i, 0), wj = wp(j, 1), wk = wp(k, 2);
-        float dwi = dwp(i, 0), dwj = dwp(j, 1), dwk = dwp(k, 2);
-        float wijk = wi * wj * wk;
-        Vector3i curr_node = base_node + Vector3i(i, j, k);
+        T wi = wp(i, 0), wj = wp(j, 1), wk = wp(k, 2);
+        T dwi = dwp(i, 0), dwj = dwp(j, 1), dwk = dwp(k, 2);
+        T wijk = wi * wj * wk;
+        VINT curr_node = base_node + VINT(i, j, k);
 
         int index = curr_node(0) * H * L + curr_node(1) * L + curr_node(2);
-        Vector3f grad_wp(dwi * wj * wk / h, wi * dwj * wk / h,
-                         wi * wj * dwk / h);
+        VT grad_wp(dwi * wj * wk / h, wi * dwj * wk / h, wi * wj * dwk / h);
 
-        MPM_INFO("offset: {}", Vector3i(i, j, k).transpose());
+        MPM_INFO("offset: {}", VINT(i, j, k).transpose());
         MPM_INFO("weight_ijk: {}", wijk);
         MPM_INFO("grad_wp: {}", grad_wp.transpose());
       }
   MPM_INFO("{} end", __func__);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   // initialize logger
   mpm::MPMLog::init();
   // quatratic_test();
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
-  auto mtl_jello = MPM_Material(50.0f, 0.3f, 10.0f, 1.0f);
-  auto mtl_water = MPM_Material(50.0f, 0.40f, 0.001f, 1.0f);
+  auto mtl_jello = MPM_Material(50.0, 0.3, 10.0, 1.0);
+  auto mtl_water = MPM_Material(50.0, 0.40, 10.0, 1000.0);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
@@ -61,50 +60,51 @@ int main(int argc, char** argv) {
   auto plas_snow = std::make_shared<mpm::Snow>();
 
   sim->clear_simulation();
-  Vector3f gravity{0.0f, -9.8f, 0.0f};
-  Vector3f area{2.0f, 2.0f, 2.0f};
-  // Vector3f velocity{-2.5f, 0.5f, -0.3f};
-  Vector3f velocity{0.0f, 0.0f, 0.0f};
-  float h = 0.02f;
+  VT gravity{0.0, -9.8, 0.0};
+  VT area{2.0, 2.0, 2.0};
+  // VT velocity{-2.5f, 0.5f, -0.3f};
+  VT velocity{0.0, 0.0, 0.0};
+  T h = 0.02;
 
   auto wall_left = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(1.0f, 0.0f, 0.0f), Vector3f(0.2f, 0.0f, 0.0f)));
-  auto wall_right = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(-1.0f, 0.0f, 0.0f), Vector3f(1.5f, 0.0f, 0.0f)));
-  auto wall_forward = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(0.0f, 0.0f, 1.0f), Vector3f(0.0f, 0.0f, 0.2f)));
+      VT(1.0, 0.0, 0.0), VT(0.2, 0.0, 0.0)));
+  auto wall_right =
+      mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          VT(-1.0, 0.0, 0.0), VT(1.5, 0.0, 0.0)));
+  auto wall_forward =
+      mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+          VT(0.0, 0.0, 1.0), VT(0.0, 0.0, 0.2)));
   auto wall_back = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(0.0f, 0.0f, -1.0f), Vector3f(0.0f, 0.0f, 1.5f)));
-  auto wall_bottom = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          Vector3f(0.0f, 1.0f, 0.0f), Vector3f(0.0f, 0.01f, 0.0f)));
-
+      VT(0.0, 0.0, -1.0), VT(0.0, 0.0, 1.2)));
+  // auto wall_bottom =
+  //     mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
+  //         VT(0.0, 1.0, 0.0f), VT(0.0, 0.1, 0.0)));
 
   sim->mpm_initialize(gravity, area, h);
-  sim->set_constitutive_model(cm_fluid_2);
-  sim->add_collision(wall_left, wall_right, wall_back, wall_forward, wall_bottom);
+  sim->set_constitutive_model(cm_fluid_1);
+  sim->add_collision(wall_left, wall_right, wall_back, wall_forward);
   // sim->set_plasticity(plas_snow);
 
   sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
 
-  std::vector<Vector3f> positions;
-  auto model_path = "../../models/dense_cube.obj";
+  std::vector<VT> positions;
+  auto model_path = "../../models/small_cube.obj";
 
   if (mpm::read_particles(model_path, positions)) {
-    sim->add_object(positions,
-                    std::vector<Vector3f>(positions.size(), velocity),
+    sim->add_object(positions, std::vector<VT>(positions.size(), velocity),
                     &mtl_water);
   } else {
     return 0;
   }
 
-  float CFL = 0.05f;
-  float max_dt = 5e-4f;
-  float dt = max_dt;
+  T CFL = 0.1;
+  T max_dt = 1e-3;
+  T dt = max_dt;
 
   int frame_rate = 60;
   int total_frame = 200;
-  float time_per_frame = 1.0f / frame_rate;
-  float total_time = 0.0f;
+  T time_per_frame = 1.0 / frame_rate;
+  T total_time = 0.0;
 
   MPM_INFO("Simulation start, Meta Informations:\n"
            "\tframe_rate: {}\n"
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
            frame_rate, dt, positions.size());
 
   fs::path output_dir("../../output/test/");
-  if(!fs::exists(output_dir)) {
+  if (!fs::exists(output_dir)) {
     fs::create_directory(output_dir);
   }
 
@@ -123,14 +123,14 @@ int main(int argc, char** argv) {
     {
       MPM_SCOPED_PROFILE("frame#" + std::to_string(frame + 1));
 
-      float mmax_vel = 0.0f;
-      float curr_time = 0.0f;
-      float min_dt = max_dt;
+      T mmax_vel = 0.0f;
+      T curr_time = 0.0f;
+      T min_dt = max_dt;
       int steps = 0;
 
       while (curr_time < time_per_frame) {
         dt = std::min(max_dt,
-                      h * CFL / std::max(0.0001f, sim->get_max_velocity()));
+                      h * CFL / std::max(T(0.0001), sim->get_max_velocity()));
         mmax_vel = std::max(mmax_vel, sim->get_max_velocity());
 
         min_dt = std::min(dt, min_dt);
@@ -145,7 +145,8 @@ int main(int argc, char** argv) {
         total_time += dt;
       }
 
-      write_particles(output_dir.generic_string() + std::to_string(++frame) + ".bgeo",
+      write_particles(output_dir.generic_string() + std::to_string(++frame) +
+                          ".bgeo",
                       sim->get_positions());
       MPM_INFO("frame#{} info:\n"
                "\tsteps: {}\n"

@@ -2,14 +2,13 @@
 
 namespace mpm {
 
-void SVDSolver(Matrix3f &F, Matrix3f &U, Matrix3f &Sigma, Matrix3f &V) {
-  Eigen::JacobiSVD<Eigen::Matrix3f> svd(F, Eigen::ComputeFullU |
-                                               Eigen::ComputeFullV);
-  Matrix3f tempU = svd.matrixU();
-  Matrix3f tempV = svd.matrixV();
+void SVDSolver(MT &F, MT &U, MT &Sigma, MT &V) {
+  Eigen::JacobiSVD<MT> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  MT tempU = svd.matrixU();
+  MT tempV = svd.matrixV();
 
-  Vector3f singVals = svd.singularValues();
-  Matrix3f tempSigma = Matrix3f::Zero();
+  VT singVals = svd.singularValues();
+  MT tempSigma = MT::Zero();
   tempSigma(0, 0) = singVals(0);
   tempSigma(1, 1) = singVals(1);
   tempSigma(2, 2) = singVals(2);
@@ -30,7 +29,7 @@ void SVDSolver(Matrix3f &F, Matrix3f &U, Matrix3f &Sigma, Matrix3f &V) {
   }
 
   if (tempSigma(0, 0) < tempSigma(1, 1)) {
-    float tempRecord = tempSigma(0, 0);
+    T tempRecord = tempSigma(0, 0);
     tempSigma(0, 0) = tempSigma(1, 1);
     tempSigma(1, 1) = tempRecord;
   }
@@ -41,13 +40,12 @@ void SVDSolver(Matrix3f &F, Matrix3f &U, Matrix3f &Sigma, Matrix3f &V) {
 }
 
 // Singular Value Decomposition
-void SVDSolverDiagonal(Matrix3f &F, Matrix3f &U, Vector3f &Sigma, Matrix3f &V) {
-  Eigen::JacobiSVD<Eigen::Matrix3f> svd(F, Eigen::ComputeFullU |
-                                               Eigen::ComputeFullV);
-  Matrix3f tempU = svd.matrixU();
-  Matrix3f tempV = svd.matrixV();
+void SVDSolverDiagonal(MT &F, MT &U, VT &Sigma, MT &V) {
+  Eigen::JacobiSVD<MT> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  MT tempU = svd.matrixU();
+  MT tempV = svd.matrixV();
 
-  Vector3f singVals = svd.singularValues();
+  VT singVals = svd.singularValues();
 
   // sorting
   if (tempU.determinant() < 0) {
@@ -65,7 +63,7 @@ void SVDSolverDiagonal(Matrix3f &F, Matrix3f &U, Vector3f &Sigma, Matrix3f &V) {
   }
 
   if (singVals(0) < singVals(1)) {
-    float tempRecord = singVals(0);
+    T tempRecord = singVals(0);
     singVals(0) = singVals(1);
     singVals(1) = tempRecord;
   }

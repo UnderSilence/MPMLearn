@@ -3,16 +3,16 @@
 namespace mpm {
 struct MPM_Material {
   // lame params
-  float E;  // young's modulus
-  float nu; // possion ratio
-  float mass;
-  float density;
+  T E;  // young's modulus
+  T nu; // possion ratio
+  T mass;
+  T density;
 
-  float lambda;
-  float mu;
-  float K;      // bulk modulus
-  float volume; // particle's volume at time 0
-  MPM_Material(float E, float nu, float mass, float density);
+  T lambda;
+  T mu;
+  T K;      // bulk modulus
+  T volume; // particle's volume at time 0
+  MPM_Material(T E, T nu, T mass, T density);
 };
 
 } // namespace mpm
