@@ -43,6 +43,14 @@ float QuatraticVolumePenalty::calc_psi(const Particle &particle) {
   return 0.5f * m->lambda * std::pow(J - 1, 2);
 }
 
+std::tuple<Matrix3f, Matrix3f>
+QuatraticVolumePenalty::calc_mixed_stress_tensor(const Particle &particle) {
+  auto m = particle.material;
+  auto F = particle.F;
+  auto J = std::max(1e-4f, F.determinant());
+  return {Matrix3f::Zero(), m->lambda * (J - 1) * J * Matrix3f::Identity()};
+}
+
 Matrix3f NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;

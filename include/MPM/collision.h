@@ -10,7 +10,7 @@ public:
   enum CollisionType { STICKY, SLIP };
 
   MPM_Collision(const std::shared_ptr<MPM_LevelSet> &levelset,
-                CollisionType coll_type = SLIP, float fraction = 0.1f);
+                CollisionType coll_type = SLIP, float fraction = 0.0f);
 
   virtual ~MPM_Collision() = default;
 
