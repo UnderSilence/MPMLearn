@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
   auto mtl_jello = MPM_Material(50.0, 0.3, 10.0, 1.0);
-  auto mtl_water = MPM_Material(2e5, 0.4, 0.01, 1000.0);
+  auto mtl_water = MPM_Material(5e5, 0.4, 0.01, 1000.0);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   T dt = max_dt;
 
   int frame_rate = 30;
-  int total_frame = 200;
+  int total_frame = 300;
   T time_per_frame = 1.0 / frame_rate;
   T total_time = 0.0;
 
