@@ -21,6 +21,7 @@ struct Particle {
   VT pos_p;
   VT vel_p;
   MT F; // deformation gradients
+  T J;
   // MT Fe;
   // MT Fp;
   MT Bp; // for APIC transfer

@@ -50,6 +50,7 @@ void MPM_Simulator::clear_simulation() {
   sim_info = SimInfo();
 }
 
+/*
 void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
                              const std::string &output_relative_path) {
 
@@ -99,7 +100,7 @@ void MPM_Simulator::mpm_demo(const std::shared_ptr<MPM_CM> &cm_demo,
                     get_positions());
     // export_result("../output/", ++frame);
   }
-}
+}*/
 
 void MPM_Simulator::substep(T dt) {
   // MPM_SCOPED_PROFILE_FUNCTION();
@@ -205,6 +206,7 @@ void MPM_Simulator::add_object(const std::vector<VT> &positions,
     particles[i].pos_p = positions[i - sim_info.particle_size];
     particles[i].vel_p = velocities[i - sim_info.particle_size];
     particles[i].F = MT::Identity();
+    particles[i].J = 1;
     // particles[i].Fe = MT::Identity();
     // particles[i].Fp = MT::Identity();
     particles[i].Bp = MT::Zero();
@@ -347,7 +349,7 @@ void MPM_Simulator::transfer_P2G() {
   });
 
   tbb::parallel_for(0, (int)sim_info.grid_size, [&](int iter) {
-    if (grid_attrs[iter].mass_i > 1e-15) {
+    if (grid_attrs[iter].mass_i != T(0)) {
       {
         // critical section
         active_nodes.push_back(iter);
@@ -426,11 +428,12 @@ void MPM_Simulator::update_F(T dt) {
   tbb::parallel_for(0, (int)sim_info.particle_size, [&](int iter) {
     // for (int iter = 0; iter < sim_info.particle_size; iter++) {
     auto F = particles[iter].F;
+    auto J = particles[iter].J;
     auto inv_h = 1.0f / sim_info.h;
     auto [base_node, wp, dwp] =
         quatratic_interpolation(particles[iter].pos_p * inv_h);
 
-    MT weight = MT::Zero();
+    MT grad_v = MT::Zero();
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         for (int k = 0; k < 3; k++) {
@@ -445,21 +448,27 @@ void MPM_Simulator::update_F(T dt) {
           MPM_ASSERT(0 <= index && index < sim_info.grid_size,
                      "PARTICLE OUT OF GRID");
 
-          weight += grid_attrs[index].vel_i * grad_wip.transpose();
+          grad_v += grid_attrs[index].vel_i * grad_wip.transpose();
         }
 
-    particles[iter].F = F + dt * weight * F;
+    particles[iter].F = (MT::Identity() + dt * grad_v) * F;
+
+    // @MetaRu some trick from ZIRAN ? but it works and really stable.
+    particles[iter].J = (1 + dt * grad_v.trace()) * J;
+
+    MPM_ASSERT(grad_v == grad_v, "FATAL GRAD_VELOCITY OCCURED!");
     if (plasticity) {
       plasticity->projectStrain(particles[iter]);
     }
 
-    if (particles[iter].F.determinant() < 0) {
+    if (J < 0) {
       MPM_WARN(
-          "particles[{}]'s determinat(F) is negative!\n{}, determinant: {}\n"
+          "particles[{}]'s J = determinat(F) is negative!\n{}, determinant: {}\n"
           "original F:\n{}, determinant: {}\n"
-          "weight:\n {}, determinant: {}",
+          "grad_v:\n {}, determinant: {}\n"
+          "J: {}",
           iter, particles[iter].F, particles[iter].F.determinant(), F,
-          F.determinant(), weight, weight.determinant());
+          F.determinant(), grad_v, grad_v.determinant(), J);
 
       // for (int i = 0; i < 3; i++)
       //   for (int j = 0; j < 3; j++)

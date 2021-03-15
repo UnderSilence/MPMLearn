@@ -9,7 +9,7 @@ std::tuple<MT, MT> MPM_CM::calc_mixed_stress_tensor(const Particle &particle) {
 MT NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   auto piola = m->mu * (F - F.transpose().inverse()) +
                m->lambda * log(J) * F.transpose().inverse();
   return piola;
@@ -18,7 +18,7 @@ MT NeoHookean_Piola::calc_stress_tensor(const Particle &particle) {
 T NeoHookean_Piola::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   auto log_J = log(J);
 
   auto psi = 0.5f * m->mu * ((F.transpose() * F).trace() - 3) - m->mu * log_J +
@@ -29,7 +29,7 @@ T NeoHookean_Piola::calc_psi(const Particle &particle) {
 MT QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
 
   return m->lambda * (J - 1) * J * F.inverse().transpose();
 }
@@ -37,7 +37,7 @@ MT QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
 T QuatraticVolumePenalty::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
 
   return 0.5f * m->lambda * std::pow(J - 1, 2);
 }
@@ -46,14 +46,15 @@ std::tuple<MT, MT>
 QuatraticVolumePenalty::calc_mixed_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
+
   return {MT::Zero(), m->lambda * (J - 1) * J * MT::Identity()};
 }
 
 MT NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   auto piola = m->lambda * log(J) * F.transpose().inverse();
   return piola;
 }
@@ -61,7 +62,7 @@ MT NeoHookean_Fluid::calc_stress_tensor(const Particle &particle) {
 T NeoHookean_Fluid::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   auto log_J = log(J);
 
   auto psi = 0.5f * m->mu * ((F.transpose() * F).trace() - 3) - m->mu * log_J +
@@ -76,7 +77,7 @@ MT CDMPM_Fluid::calc_stress_tensor(const Particle &particle) {
 T CDMPM_Fluid::calc_psi(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   auto log_J = log(J);
   // 0.5 * K ( 0.5 * (J^2 - 1) - Log(J))
   auto psi = 0.5f * m->K * (0.5f * (J * J - 1) - log_J);
@@ -87,7 +88,7 @@ std::tuple<MT, MT>
 CDMPM_Fluid::calc_mixed_stress_tensor(const Particle &particle) {
   auto m = particle.material;
   auto F = particle.F;
-  auto J = F.determinant();
+  auto J = particle.J;
   // d(psi)/d(J) * d(J)/d(F) =
   // 0.5 * K (J - 1 / J) * J * F^{-T}
   // if (J >= 1) {

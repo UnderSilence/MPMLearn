@@ -8,8 +8,8 @@ inline VT calc_quadratic(T o, T x) {
   T d1 = d0 - 1;
   T d2 = 1 - d1;
 
-  return {0.5 * (1.5 - d0) * (1.5 - d0), 0.75 - d1 * d1,
-          0.5 * (1.5 - d2) * (1.5 - d2)};
+  return {T(0.5) * T(1.5 - d0) * T(1.5 - d0), T(0.75) - d1 * d1,
+          T(0.5) * T(1.5 - d2) * T(1.5 - d2)};
 }
 
 inline VT calc_quadratic_grad(T o, T x) {
@@ -17,7 +17,7 @@ inline VT calc_quadratic_grad(T o, T x) {
   T d1 = d0 - 1;
   T d2 = 1 - d1;
 
-  return {d0 - 1.5, -2 * d1, 1.5 - d2};
+  return {d0 - T(1.5), -2 * d1, T(1.5) - d2};
 }
 
 // under gridspace coords
