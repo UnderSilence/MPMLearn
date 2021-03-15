@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
   auto sim = std::make_shared<mpm::MPM_Simulator>();
 
   auto mtl_jello = MPM_Material(50.0, 0.3, 10.0, 1.0);
-  auto mtl_water = MPM_Material(50.0, 0.40, 10.0, 1000.0);
+  auto mtl_water = MPM_Material(1000.0, 0.4, 1.0, 1.0);
 
   auto cm_solid = std::make_shared<mpm::NeoHookean_Piola>();
   auto cm_fluid = std::make_shared<mpm::NeoHookean_Fluid>();
@@ -61,21 +61,21 @@ int main(int argc, char **argv) {
 
   sim->clear_simulation();
   VT gravity{0.0, -9.8, 0.0};
-  VT area{2.0, 2.0, 2.0};
+  VT area{10.0, 10.0, 10.0};
   // VT velocity{-2.5f, 0.5f, -0.3f};
   VT velocity{0.0, 0.0, 0.0};
-  T h = 0.02;
+  T h = 0.1;
 
   auto wall_left = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-      VT(1.0, 0.0, 0.0), VT(0.2, 0.0, 0.0)));
+      VT(1.0, 0.0, 0.0), VT(2, 0.0, 0.0)));
   auto wall_right =
       mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          VT(-1.0, 0.0, 0.0), VT(1.5, 0.0, 0.0)));
+          VT(-1.0, 0.0, 0.0), VT(8.2, 0.0, 0.0)));
   auto wall_forward =
       mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-          VT(0.0, 0.0, 1.0), VT(0.0, 0.0, 0.2)));
+          VT(0.0, 0.0, 1.0), VT(0.0, 0.0, 1.8)));
   auto wall_back = mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
-      VT(0.0, 0.0, -1.0), VT(0.0, 0.0, 1.2)));
+      VT(0.0, 0.0, -1.0), VT(0.0, 0.0, 6)));
   // auto wall_bottom =
   //     mpm::MPM_Collision(std::make_shared<mpm::HalfPlane_LevelSet>(
   //         VT(0.0, 1.0, 0.0f), VT(0.0, 0.1, 0.0)));
@@ -85,10 +85,10 @@ int main(int argc, char **argv) {
   sim->add_collision(wall_left, wall_right, wall_back, wall_forward);
   // sim->set_plasticity(plas_snow);
 
-  sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::FLIP99);
+  sim->set_transfer_scheme(mpm::MPM_Simulator::TransferScheme::APIC);
 
   std::vector<VT> positions;
-  auto model_path = "../../models/small_cube.obj";
+  auto model_path = "../../models/sand.obj";
 
   if (mpm::read_particles(model_path, positions)) {
     sim->add_object(positions, std::vector<VT>(positions.size(), velocity),
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   T max_dt = 1e-3;
   T dt = max_dt;
 
-  int frame_rate = 60;
+  int frame_rate = 30;
   int total_frame = 200;
   T time_per_frame = 1.0 / frame_rate;
   T total_time = 0.0;

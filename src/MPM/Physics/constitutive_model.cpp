@@ -31,7 +31,7 @@ MT QuatraticVolumePenalty::calc_stress_tensor(const Particle &particle) {
   auto F = particle.F;
   auto J = F.determinant();
 
-  return 0.5f * m->lambda * 2 * (J - 1) * J * F.inverse().transpose();
+  return m->lambda * (J - 1) * J * F.inverse().transpose();
 }
 
 T QuatraticVolumePenalty::calc_psi(const Particle &particle) {

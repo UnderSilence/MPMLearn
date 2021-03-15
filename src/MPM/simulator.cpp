@@ -111,7 +111,7 @@ void MPM_Simulator::substep(T dt) {
   add_gravity();
   update_grid_force();
   update_grid_velocity(dt);
-  solve_grid_boundary(3);
+  solve_grid_boundary(2);
   solve_grid_collision();
   update_F(dt);
   transfer_G2P();
@@ -321,10 +321,11 @@ void MPM_Simulator::transfer_P2G() {
 
           // check if particles run out of boundaries
           MPM_ASSERT(0 <= index && index < sim_info.grid_size,
-                     " PARTICLE OUT OF GRID at Transfer_P2G\n"
+                     " PARTICLE[{}] OUT OF GRID at Transfer_P2G\n"
                      "\tposition: {}"
                      "\tvelocity: {}",
-                     particle.pos_p.transpose(), particle.vel_p.transpose());
+                     iter, particle.pos_p.transpose(),
+                     particle.vel_p.transpose());
 
           T wijk = wp(i, 0) * wp(j, 1) * wp(k, 2);
           VT plus = VT::Zero();
