@@ -13,7 +13,9 @@
 
 namespace mpm {
 
-MPM_Simulator::MPM_Simulator() : sim_info() {}
+MPM_Simulator::MPM_Simulator()
+    : sim_info(), particles(nullptr), grid_attrs(nullptr),
+      grid_mutexs(nullptr) {}
 
 MPM_Simulator::~MPM_Simulator() {
   // note: build a active_id <-> grid_id map in future

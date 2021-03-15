@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
            frame_rate, dt, positions.size());
 
   fs::path output_dir("../../output/test/");
-  if(not fs::exists(output_dir)) {
+  if(!fs::exists(output_dir)) {
     fs::create_directory(output_dir);
   }
 
