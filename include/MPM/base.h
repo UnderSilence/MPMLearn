@@ -6,6 +6,7 @@
 #include <Eigen/SparseQR>
 #include <Eigen/StdVector>
 
+#include "settings.h"
 namespace mpm {
 
 using namespace Eigen;
